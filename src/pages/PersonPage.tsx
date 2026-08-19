@@ -2,9 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
-import { ArrowLeft, AlertCircle, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useKeyStore } from '../store/keyStore';
-import { createTMDBClient } from '../api/tmdb';
+import { createTMDBClient, type PersonCredit, type PersonDetail } from '../api/tmdb';
 import { TMDB_IMAGE_BASE } from '../lib/constants';
 import { PosterCard } from '../components/PosterCard';
 
@@ -25,30 +25,35 @@ const itemVariants = {
   }
 };
 
-export const PersonPage: React.FC = () => {
-  const { id } = useParams({ from: '/person/$id' });
-  const navigate = useNavigate();
-  const apiKey = useKeyStore((state) => state.apiKey);
+const formatDate = (dateString: string) => {
+  const [year, month, day] = dateString.split('-');
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+};
+
+const calculateAge = (birthDate: string, deathDate: string | null) => {
+  const [bYear, bMonth, bDay] = birthDate.split('-');
+  const birth = new Date(Number(bYear), Number(bMonth) - 1, Number(bDay));
   
-  const [showFullBio, setShowFullBio] = useState(false);
+  const end = deathDate ? (() => {
+    const [dYear, dMonth, dDay] = deathDate.split('-');
+    return new Date(Number(dYear), Number(dMonth) - 1, Number(dDay));
+  })() : new Date();
+  
+  let age = end.getFullYear() - birth.getFullYear();
+  const m = end.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && end.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+};
+
+// Reusable row for credits
+const CreditRow = ({ title, credits }: { title: string, credits: PersonCredit[] }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
-
-  if (!apiKey) return null;
-
-  const tmdb = createTMDBClient(apiKey);
-
-  const { data: details, isLoading: isLoadingDetails, error: errorDetails } = useQuery({
-    queryKey: ['person', id],
-    queryFn: () => tmdb.getPersonDetails(Number(id)),
-  });
-
-  const { data: credits, isLoading: isLoadingCredits } = useQuery({
-    queryKey: ['person-credits', id],
-    queryFn: () => tmdb.getPersonCredits(Number(id)),
-  });
 
   const handleScroll = () => {
     if (scrollRef.current) {
@@ -70,22 +75,109 @@ export const PersonPage: React.FC = () => {
     }
   };
 
+  if (!credits || credits.length === 0) return null;
+
+  return (
+    <motion.section 
+      variants={itemVariants} 
+      className="relative mb-10"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <h2 className="font-sans font-medium text-[11px] uppercase tracking-widest text-[#5a5a72] mb-4">
+        {title}
+      </h2>
+
+      <div className="relative">
+        {/* Navigation Arrows */}
+        <div 
+          className={`absolute -left-4 top-1/2 -translate-y-1/2 z-30 transition-opacity duration-200 ${
+            showLeftArrow && isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          <button 
+            onClick={() => scrollByAmount(-800)}
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-[rgba(7,7,13,0.8)] border border-[var(--color-border-subtle)] text-white hover:bg-[var(--color-surface)] hover:text-[#7c5cfc] transition-colors"
+          >
+            <ChevronLeft size={24} />
+          </button>
+        </div>
+
+        <div 
+          className={`absolute -right-4 top-1/2 -translate-y-1/2 z-30 transition-opacity duration-200 ${
+            showRightArrow && isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          <button 
+            onClick={() => scrollByAmount(800)}
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-[rgba(7,7,13,0.8)] border border-[var(--color-border-subtle)] text-white hover:bg-[var(--color-surface)] hover:text-[#7c5cfc] transition-colors"
+          >
+            <ChevronRight size={24} />
+          </button>
+        </div>
+
+        {/* Row */}
+        <div 
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex overflow-x-auto gap-3 no-scrollbar pb-4"
+        >
+          {credits.map((credit, i) => (
+            <PosterCard
+              key={`${credit.id}-${i}`}
+              id={credit.id}
+              title={credit.title || credit.name}
+              posterPath={credit.poster_path}
+              mediaType={credit.media_type}
+              voteAverage={credit.vote_average}
+            />
+          ))}
+        </div>
+      </div>
+    </motion.section>
+  );
+};
+
+
+export const PersonPage: React.FC = () => {
+  const { id } = useParams({ from: '/person/$id' });
+  const navigate = useNavigate();
+  const apiKey = useKeyStore((state) => state.apiKey);
+  
+  const [showFullBio, setShowFullBio] = useState(false);
+
+  if (!apiKey) return null;
+
+  const tmdb = createTMDBClient(apiKey);
+
+  const { data: details, isLoading: isLoadingDetails, error: errorDetails } = useQuery({
+    queryKey: ['person', id],
+    queryFn: () => tmdb.getPersonDetails(Number(id)),
+  });
+
+  const { data: credits, isLoading: isLoadingCredits } = useQuery({
+    queryKey: ['person-credits', id],
+    queryFn: () => tmdb.getPersonCredits(Number(id)),
+  });
+
   if (isLoadingDetails) {
     return (
       <div className="min-h-screen bg-[var(--color-background)]">
-        <div className="relative h-[60vh] min-h-[500px] w-full animate-shimmer"
+        <div className="relative h-[65vh] min-h-[500px] w-full animate-shimmer"
              style={{ 
                background: 'linear-gradient(90deg, #0f0f1a 0%, #1c1c2e 50%, #0f0f1a 100%)',
                backgroundSize: '200% 100%' 
              }}>
-          <div className="absolute bottom-0 left-0 right-0 px-8 pb-10 flex flex-col items-center justify-end h-full">
-            <div className="w-36 h-36 rounded-full animate-shimmer mb-4"
+          <div className="absolute bottom-0 left-0 right-0 px-8 pb-10 flex gap-8 items-end justify-center h-full max-w-[1000px] mx-auto">
+            <div className="w-48 aspect-[2/3] rounded-xl animate-shimmer"
                  style={{ 
                    background: 'linear-gradient(90deg, #0f0f1a 0%, #1c1c2e 50%, #0f0f1a 100%)',
                    backgroundSize: '200% 100%' 
                  }} />
-            <div className="h-10 w-64 rounded animate-shimmer bg-[#1c1c2e] mb-2" />
-            <div className="h-4 w-40 rounded animate-shimmer bg-[#1c1c2e]" />
+            <div className="flex-1 space-y-4 pb-4">
+              <div className="h-10 w-64 rounded animate-shimmer bg-[#1c1c2e] mb-2" />
+              <div className="h-4 w-40 rounded animate-shimmer bg-[#1c1c2e]" />
+            </div>
           </div>
         </div>
       </div>
@@ -111,14 +203,26 @@ export const PersonPage: React.FC = () => {
   }
 
   const profileUrl = details.profile_path ? `${TMDB_IMAGE_BASE}original${details.profile_path}` : '';
-  const avatarUrl = details.profile_path ? `${TMDB_IMAGE_BASE}w500${details.profile_path}` : '';
+  const avatarUrl = details.profile_path ? `${TMDB_IMAGE_BASE}w342${details.profile_path}` : '';
   
-  // Sort and filter top 20 credits by popularity or vote average
-  const sortedCredits = credits?.cast
-    ? [...credits.cast]
-        .sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0))
-        .slice(0, 20)
-    : [];
+  // Prepare credits
+  const validCredits = credits?.cast?.filter(c => c.poster_path && c.vote_average > 0) || [];
+  
+  const knownFor = [...validCredits]
+    .sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0))
+    .slice(0, 20);
+
+  const movies = validCredits
+    .filter(c => c.media_type === 'movie')
+    .sort((a, b) => new Date(b.release_date || 0).getTime() - new Date(a.release_date || 0).getTime());
+
+  const shows = validCredits
+    .filter(c => c.media_type === 'tv')
+    .sort((a, b) => new Date(b.first_air_date || 0).getTime() - new Date(a.first_air_date || 0).getTime());
+
+  const movieCount = validCredits.filter(c => c.media_type === 'movie').length;
+  const tvCount = validCredits.filter(c => c.media_type === 'tv').length;
+  const totalCount = validCredits.length;
 
   return (
     <div className="min-h-screen bg-black pb-20 overflow-x-hidden">
@@ -132,63 +236,127 @@ export const PersonPage: React.FC = () => {
       </button>
 
       {/* Hero Section */}
-      <div className="relative h-[60vh] min-h-[500px] w-full bg-black overflow-hidden flex items-end justify-center">
-        {profileUrl ? (
+      <div className="relative h-[65vh] min-h-[500px] w-full bg-black overflow-hidden flex items-end justify-center">
+        {profileUrl && (
           <img
             src={profileUrl}
             alt={details.name}
-            className="absolute inset-0 w-full h-full object-cover object-top opacity-50"
+            className="absolute inset-0 w-full h-full object-cover object-top"
           />
-        ) : (
-          <div className="absolute inset-0 w-full h-full bg-[#0f0f1a]" />
         )}
         
-        {/* Overlay Gradient */}
+        {/* Overlay Gradients */}
         <div 
           className="absolute inset-0 pointer-events-none z-10" 
-          style={{ background: 'linear-gradient(to top, black 0%, black 10%, transparent 70%)' }} 
+          style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)' }} 
+        />
+        <div 
+          className="absolute inset-0 pointer-events-none z-10" 
+          style={{ background: 'linear-gradient(to top, black 0%, black 15%, transparent 60%)' }} 
         />
 
-        {/* Hero Content */}
-        <div className="relative z-20 flex flex-col items-center pb-8 text-center px-4 w-full">
-          {avatarUrl ? (
-            <img 
-              src={avatarUrl} 
-              alt={details.name} 
-              className="w-36 h-36 rounded-full object-cover border-2 border-white/20 mb-4 shadow-xl"
-            />
-          ) : (
-            <div className="w-36 h-36 rounded-full border-2 border-white/20 mb-4 shadow-xl bg-[#1c1c2e] flex items-center justify-center text-[#5a5a72]">
-              <User size={64} />
-            </div>
-          )}
-
-          <motion.h1 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="font-[Georgia,'Times_New_Roman',serif] font-bold text-white text-4xl leading-tight mb-2"
-          >
-            {details.name}
-          </motion.h1>
-
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="flex flex-col items-center gap-1 font-sans text-sm"
-          >
-            <span className="text-[#9898b0]">{details.known_for_department}</span>
-            <div className="flex items-center gap-2 text-[#5a5a72] text-[13px]">
-              {details.birthday && <span>Born {details.birthday}</span>}
-              {details.birthday && details.place_of_birth && <span>•</span>}
-              {details.place_of_birth && <span>{details.place_of_birth}</span>}
-            </div>
-            {details.deathday && (
-              <div className="text-[#5a5a72] text-[13px]">
-                <span>Died {details.deathday}</span>
-              </div>
+        {/* Hero Content Block */}
+        <div className="absolute inset-0 flex items-end justify-center pb-10 md:pb-14 z-20 overflow-visible pointer-events-none">
+          <div className="flex flex-col md:flex-row items-end justify-center gap-[30px] md:gap-[48px] max-w-[1000px] w-full px-[24px] pointer-events-auto">
+            
+            {/* LEFT: Portrait Photo */}
+            {avatarUrl && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.45, ease: "easeOut" as const }}
+                className="relative w-48 shrink-0 rounded-xl shadow-2xl"
+              >
+                <img 
+                  src={avatarUrl} 
+                  alt={details.name}
+                  className="w-full h-auto object-cover rounded-xl block"
+                />
+                <div 
+                  className="absolute inset-x-0 bottom-0 h-1/2 rounded-b-xl pointer-events-none" 
+                  style={{ background: 'linear-gradient(to top, black 0%, transparent 40%)' }} 
+                />
+              </motion.div>
             )}
-          </motion.div>
+
+            {/* RIGHT: Info */}
+            <motion.div 
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              className="flex flex-col gap-[16px] max-w-2xl text-center md:text-left items-center md:items-start"
+            >
+              <motion.h1 
+                variants={itemVariants}
+                className="font-[Georgia,'Times_New_Roman',serif] font-bold text-white text-4xl md:text-5xl leading-tight"
+              >
+                {details.name}
+              </motion.h1>
+
+              <motion.div variants={itemVariants}>
+                <span className="inline-block px-3 py-1 bg-[var(--color-accent-dim)] text-[var(--color-accent)] border border-[var(--color-accent)] rounded-full font-sans text-[11px] tracking-wider uppercase leading-none">
+                  {details.known_for_department}
+                </span>
+              </motion.div>
+              
+              {/* Stats Row */}
+              <motion.div variants={itemVariants} className="flex flex-wrap justify-center md:justify-start items-center gap-6 mt-2">
+                {details.birthday && (
+                  <div className="flex flex-col text-left">
+                    <span className="text-[#5a5a72] text-[10px] uppercase tracking-widest font-semibold mb-1">Born</span>
+                    <span className="text-[#eeeef5] text-[14px] font-medium">{formatDate(details.birthday)}</span>
+                  </div>
+                )}
+                {details.birthday && (
+                  <div className="flex flex-col text-left">
+                    <span className="text-[#5a5a72] text-[10px] uppercase tracking-widest font-semibold mb-1">Age</span>
+                    <span className="text-[#eeeef5] text-[14px] font-medium">{details.deathday ? `† Age ${calculateAge(details.birthday, details.deathday)}` : calculateAge(details.birthday, null)}</span>
+                  </div>
+                )}
+                {details.place_of_birth && (
+                  <div className="flex flex-col text-left">
+                    <span className="text-[#5a5a72] text-[10px] uppercase tracking-widest font-semibold mb-1">From</span>
+                    <span className="text-[#eeeef5] text-[14px] font-medium">{details.place_of_birth}</span>
+                  </div>
+                )}
+                <div className="flex flex-col text-left">
+                  <span className="text-[#5a5a72] text-[10px] uppercase tracking-widest font-semibold mb-1">Gender</span>
+                  <span className="text-[#eeeef5] text-[14px] font-medium">
+                    {details.gender === 1 ? 'Female' : details.gender === 2 ? 'Male' : '—'}
+                  </span>
+                </div>
+              </motion.div>
+
+              {/* Also Known As */}
+              {details.also_known_as && details.also_known_as.length > 0 && (
+                <motion.div variants={itemVariants} className="flex flex-wrap justify-center md:justify-start gap-2 mt-2">
+                  {details.also_known_as.slice(0, 3).map(alias => (
+                    <span key={alias} className="px-2 py-1 bg-white/10 text-[#9898b0] text-[11px] rounded font-medium border border-white/5">
+                      {alias}
+                    </span>
+                  ))}
+                </motion.div>
+              )}
+            </motion.div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Bar */}
+      <div className="flex items-center justify-center gap-8 md:gap-16 py-5 bg-[#0a0a10] border-y border-[rgba(255,255,255,0.04)] shadow-inner w-full px-4">
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-white text-2xl font-bold font-sans">{movieCount}</span>
+          <span className="text-[#5a5a72] text-[10px] uppercase tracking-[0.15em] font-semibold">Movies</span>
+        </div>
+        <div className="w-px h-10 bg-[rgba(255,255,255,0.08)]" />
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-white text-2xl font-bold font-sans">{tvCount}</span>
+          <span className="text-[#5a5a72] text-[10px] uppercase tracking-[0.15em] font-semibold">TV Shows</span>
+        </div>
+        <div className="w-px h-10 bg-[rgba(255,255,255,0.08)]" />
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-white text-2xl font-bold font-sans">{totalCount}</span>
+          <span className="text-[#5a5a72] text-[10px] uppercase tracking-[0.15em] font-semibold">Total Credits</span>
         </div>
       </div>
 
@@ -197,13 +365,26 @@ export const PersonPage: React.FC = () => {
         initial="hidden"
         whileInView="show"
         viewport={{ once: true, margin: "-100px" }}
-        className="w-full max-w-[1000px] mx-auto px-16 pt-8 pb-12 flex flex-col gap-12"
+        className="w-full max-w-[1000px] mx-auto px-6 md:px-16 pt-10 pb-12 flex flex-col gap-12"
       >
         {/* Biography Section */}
         <motion.section variants={itemVariants} className="bg-black">
-          <h2 className="font-sans font-medium text-[11px] uppercase tracking-widest text-[#5a5a72] mb-4">
-            BIOGRAPHY
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-sans font-medium text-[11px] uppercase tracking-widest text-[#5a5a72]">
+              BIOGRAPHY
+            </h2>
+            {details.imdb_id && (
+              <a 
+                href={`https://www.imdb.com/name/${details.imdb_id}`} 
+                target="_blank" 
+                rel="noreferrer"
+                className="px-3 py-1.5 rounded bg-black/40 border border-white/20 text-[#e2e2e2] font-sans font-semibold text-[11px] hover:bg-white/10 hover:text-white transition-all"
+              >
+                View on IMDb
+              </a>
+            )}
+          </div>
+          
           {details.biography ? (
             <div className="text-[#e2e2e2] font-sans text-base leading-[1.6]">
               <p className={!showFullBio ? "line-clamp-4" : ""}>
@@ -212,7 +393,7 @@ export const PersonPage: React.FC = () => {
               {details.biography.length > 300 && (
                 <button 
                   onClick={() => setShowFullBio(!showFullBio)}
-                  className="mt-2 text-[#7c5cfc] hover:text-white transition-colors text-sm font-semibold"
+                  className="mt-2 text-[#7c5cfc] hover:text-[#9b83fc] transition-colors text-sm font-semibold"
                 >
                   {showFullBio ? 'Show less' : 'Show more'}
                 </button>
@@ -224,65 +405,13 @@ export const PersonPage: React.FC = () => {
           <div className="border-t border-[rgba(255,255,255,0.06)] mt-10 w-full" />
         </motion.section>
 
-        {/* Known For Section */}
-        {!isLoadingCredits && sortedCredits.length > 0 && (
-          <motion.section 
-            variants={itemVariants} 
-            className="relative"
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-          >
-            <h2 className="font-sans font-medium text-[11px] uppercase tracking-widest text-[#5a5a72] mb-4">
-              KNOWN FOR
-            </h2>
-
-            <div className="relative">
-              {/* Navigation Arrows */}
-              <div 
-                className={`absolute -left-4 top-1/2 -translate-y-1/2 z-30 transition-opacity duration-200 ${
-                  showLeftArrow && isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                }`}
-              >
-                <button 
-                  onClick={() => scrollByAmount(-800)}
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-[rgba(7,7,13,0.8)] border border-[var(--color-border-subtle)] text-white hover:bg-[var(--color-surface)] hover:text-[#7c5cfc] transition-colors"
-                >
-                  <ChevronLeft size={24} />
-                </button>
-              </div>
-
-              <div 
-                className={`absolute -right-4 top-1/2 -translate-y-1/2 z-30 transition-opacity duration-200 ${
-                  showRightArrow && isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                }`}
-              >
-                <button 
-                  onClick={() => scrollByAmount(800)}
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-[rgba(7,7,13,0.8)] border border-[var(--color-border-subtle)] text-white hover:bg-[var(--color-surface)] hover:text-[#7c5cfc] transition-colors"
-                >
-                  <ChevronRight size={24} />
-                </button>
-              </div>
-
-              {/* Row */}
-              <div 
-                ref={scrollRef}
-                onScroll={handleScroll}
-                className="flex overflow-x-auto gap-3 no-scrollbar pb-2"
-              >
-                {sortedCredits.map((credit, i) => (
-                  <PosterCard
-                    key={`${credit.id}-${i}`}
-                    id={credit.id}
-                    title={credit.title || credit.name}
-                    posterPath={credit.poster_path}
-                    mediaType={credit.media_type}
-                    voteAverage={credit.vote_average}
-                  />
-                ))}
-              </div>
-            </div>
-          </motion.section>
+        {/* Filmography Sections */}
+        {!isLoadingCredits && (
+          <>
+            <CreditRow title="KNOWN FOR" credits={knownFor} />
+            <CreditRow title={`MOVIES (${movieCount})`} credits={movies} />
+            <CreditRow title={`TV SHOWS (${tvCount})`} credits={shows} />
+          </>
         )}
       </motion.div>
     </div>

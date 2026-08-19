@@ -65,6 +65,10 @@ export interface PersonDetail {
   profile_path: string | null;
   known_for_department: string;
   popularity: number;
+  also_known_as: string[];
+  gender: number;
+  homepage: string | null;
+  imdb_id: string | null;
 }
 
 export interface PersonCredit {
@@ -107,5 +111,6 @@ export const createTMDBClient = (apiKey: string) => {
       fetchTMDB<TMDBDetail>(`/${type}/${id}?append_to_response=credits,videos,similar`),
     getPersonDetails: (id: number) => fetchTMDB<PersonDetail>(`/person/${id}`),
     getPersonCredits: (id: number) => fetchTMDB<{ cast: PersonCredit[] }>(`/person/${id}/combined_credits`),
+    getPersonImages: (id: number) => fetchTMDB<{ profiles: { file_path: string }[] }>(`/person/${id}/images`),
   };
 };
