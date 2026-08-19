@@ -325,15 +325,19 @@ export const DetailPage: React.FC = () => {
             </h2>
             <div className="flex overflow-x-auto gap-[28px] pb-[8px] no-scrollbar">
               {data.credits.cast.slice(0, 10).map(actor => (
-                <div key={actor.id} className="w-[88px] shrink-0 flex flex-col items-center gap-[10px]">
+                <div 
+                  key={actor.id} 
+                  className="w-[88px] shrink-0 flex flex-col items-center gap-[10px] cursor-pointer"
+                  onClick={() => navigate({ to: '/person/$id', params: { id: actor.id.toString() } })}
+                >
                   {actor.profile_path ? (
                     <img 
                       src={`${TMDB_IMAGE_BASE}w185${actor.profile_path}`} 
                       alt={actor.name}
-                      className="w-[78px] h-[78px] rounded-full object-cover border-[2px] border-[rgba(255,255,255,0.1)]"
+                      className="w-[78px] h-[78px] rounded-full object-cover border-[2px] border-[rgba(255,255,255,0.1)] transition-colors"
                     />
                   ) : (
-                    <div className="w-[78px] h-[78px] rounded-full bg-[#1c1c2e] border-[2px] border-[rgba(255,255,255,0.1)] flex items-center justify-center">
+                    <div className="w-[78px] h-[78px] rounded-full bg-[#1c1c2e] border-[2px] border-[rgba(255,255,255,0.1)] flex items-center justify-center transition-colors">
                       <User size={26} className="text-[#5a5a72]" />
                     </div>
                   )}

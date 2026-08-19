@@ -55,6 +55,30 @@ export interface TMDBDetail {
   };
 }
 
+export interface PersonDetail {
+  id: number;
+  name: string;
+  biography: string;
+  birthday: string | null;
+  deathday: string | null;
+  place_of_birth: string | null;
+  profile_path: string | null;
+  known_for_department: string;
+  popularity: number;
+}
+
+export interface PersonCredit {
+  id: number;
+  title?: string;
+  name?: string;
+  media_type: 'movie' | 'tv';
+  character: string;
+  poster_path: string | null;
+  vote_average: number;
+  release_date?: string;
+  first_air_date?: string;
+}
+
 export const createTMDBClient = (apiKey: string) => {
   const fetchTMDB = async <T>(endpoint: string): Promise<T> => {
     const separator = endpoint.includes('?') ? '&' : '?';
@@ -81,5 +105,7 @@ export const createTMDBClient = (apiKey: string) => {
     getTopRatedSeries: () => fetchTMDB<TMDBResponse<TMDBMedia>>('/tv/top_rated'),
     getMediaDetails: (id: string, type: 'movie' | 'tv') => 
       fetchTMDB<TMDBDetail>(`/${type}/${id}?append_to_response=credits,videos,similar`),
+    getPersonDetails: (id: number) => fetchTMDB<PersonDetail>(`/person/${id}`),
+    getPersonCredits: (id: number) => fetchTMDB<{ cast: PersonCredit[] }>(`/person/${id}/combined_credits`),
   };
 };
