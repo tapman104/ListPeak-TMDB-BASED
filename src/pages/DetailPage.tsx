@@ -19,7 +19,7 @@ const containerVariants = {
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 20 },
   show: { 
     opacity: 1, 
     y: 0, 
@@ -39,13 +39,12 @@ export const DetailPage: React.FC = () => {
     window.scrollTo(0, 0);
   }, [id]);
 
-  if (!apiKey) return null;
-
-  const tmdb = createTMDBClient(apiKey);
+  const tmdb = apiKey ? createTMDBClient(apiKey) : null;
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['detail', type, id],
-    queryFn: () => tmdb.getMediaDetails(id, type),
+    queryFn: () => tmdb!.getMediaDetails(id, type),
+    enabled: !!apiKey && !!id && !!tmdb,
   });
 
   const handleShare = () => {
@@ -54,37 +53,36 @@ export const DetailPage: React.FC = () => {
     setTimeout(() => setShowCopied(false), 2000);
   };
 
+  if (!apiKey) return null;
+
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[var(--color-background)]">
         {/* Backdrop Skeleton */}
-        <div className="relative h-[70vh] min-h-[500px] w-full animate-shimmer"
+        <div className="relative min-h-[500px] md:h-[75vh] w-full animate-shimmer"
              style={{ 
                background: 'linear-gradient(90deg, #0f0f1a 0%, #1c1c2e 50%, #0f0f1a 100%)',
                backgroundSize: '200% 100%' 
              }}>
           {/* Info Block Skeleton */}
-          <div className="absolute bottom-0 left-0 right-0 px-[24px] md:px-[80px] pb-[40px] md:pb-[56px] flex flex-col md:flex-row items-start md:items-end gap-[40px]">
-            <div className="w-[120px] md:w-[160px] aspect-[2/3] shrink-0 rounded-[12px] animate-shimmer"
-                 style={{ 
-                   background: 'linear-gradient(90deg, #0f0f1a 0%, #1c1c2e 50%, #0f0f1a 100%)',
-                   backgroundSize: '200% 100%' 
-                 }} />
-            <div className="flex-1 w-full space-y-4">
-              <div className="h-[48px] w-[60%] rounded animate-shimmer bg-[#1c1c2e]" />
-              <div className="h-[24px] w-[40%] rounded animate-shimmer bg-[#1c1c2e]" />
-              <div className="h-[24px] w-[80%] rounded animate-shimmer bg-[#1c1c2e]" />
+          <div className="absolute bottom-0 left-0 right-0 px-4 sm:px-8 md:px-16 pb-8 md:pb-14 flex flex-col md:flex-row items-center md:items-end gap-6 md:gap-10 max-w-[1000px] mx-auto">
+            <div className="w-36 sm:w-48 md:w-56 aspect-[2/3] shrink-0 rounded-xl animate-shimmer bg-[#1c1c2e]" />
+            <div className="flex-1 w-full space-y-3 sm:space-y-4 text-center md:text-left">
+              <div className="h-8 sm:h-12 w-[80%] md:w-[60%] mx-auto md:mx-0 rounded animate-shimmer bg-[#1c1c2e]" />
+              <div className="h-5 sm:h-6 w-[50%] md:w-[40%] mx-auto md:mx-0 rounded animate-shimmer bg-[#1c1c2e]" />
+              <div className="h-5 sm:h-6 w-[70%] md:w-[60%] mx-auto md:mx-0 rounded animate-shimmer bg-[#1c1c2e]" />
             </div>
           </div>
         </div>
         {/* Content Skeleton */}
-        <div className="px-[24px] md:px-[80px] py-[40px] md:py-[56px] flex flex-col gap-[48px]">
+        <div className="px-4 sm:px-8 md:px-16 py-8 md:py-14 max-w-[1000px] mx-auto flex flex-col gap-10">
           <div>
-            <div className="h-[16px] w-[100px] rounded animate-shimmer bg-[#1c1c2e] mb-4" />
-            <div className="space-y-2">
-              <div className="h-[16px] w-full rounded animate-shimmer bg-[#1c1c2e]" />
-              <div className="h-[16px] w-full rounded animate-shimmer bg-[#1c1c2e]" />
-              <div className="h-[16px] w-[70%] rounded animate-shimmer bg-[#1c1c2e]" />
+            <div className="h-4 w-28 rounded animate-shimmer bg-[#1c1c2e] mb-4" />
+            <div className="space-y-2.5">
+              <div className="h-4 w-full rounded animate-shimmer bg-[#1c1c2e]" />
+              <div className="h-4 w-full rounded animate-shimmer bg-[#1c1c2e]" />
+              <div className="h-4 w-[75%] rounded animate-shimmer bg-[#1c1c2e]" />
             </div>
           </div>
         </div>
@@ -94,17 +92,17 @@ export const DetailPage: React.FC = () => {
 
   if (error || !data) {
     return (
-      <div className="min-h-[60vh] bg-[var(--color-background)] flex flex-col items-center justify-center text-center px-4">
+      <div className="min-h-[60vh] bg-[var(--color-background)] flex flex-col items-center justify-center text-center px-4 py-16">
         <AlertCircle size={48} className="text-[#5a5a72] mb-4" />
-        <h1 className="font-sans font-semibold text-[20px] text-[#eeeef5] mb-2">Could not load title</h1>
-        <p className="font-sans font-normal text-[14px] text-[#5a5a72] mb-6">
+        <h1 className="font-sans font-semibold text-lg sm:text-xl text-[#eeeef5] mb-2">Could not load title</h1>
+        <p className="font-sans font-normal text-sm text-[#5a5a72] mb-6 max-w-sm">
           The title may not exist or your API key may be invalid.
         </p>
         <button 
           onClick={() => window.history.back()}
-          className="flex items-center justify-center gap-2 h-[36px] px-4 rounded-full bg-[rgba(15,15,26,0.7)] backdrop-blur-[8px] border border-[rgba(255,255,255,0.1)] text-[#eeeef5] font-sans font-medium text-[13px] hover:bg-[rgba(124,92,252,0.2)] hover:border-[rgba(124,92,252,0.5)] transition-all duration-200"
+          className="flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-full bg-[rgba(15,15,26,0.8)] backdrop-blur-md border border-[rgba(255,255,255,0.15)] text-[#eeeef5] font-sans font-medium text-sm hover:bg-[var(--color-accent-dim)] hover:border-[var(--color-accent)] transition-all cursor-pointer"
         >
-          <ArrowLeft size={15} /> Back
+          <ArrowLeft size={16} /> Back
         </button>
       </div>
     );
@@ -122,9 +120,9 @@ export const DetailPage: React.FC = () => {
   };
   
   // @ts-ignore
-  const tagline = data.tagline; // accessing untyped field that might exist
+  const tagline = data.tagline;
   // @ts-ignore
-  const createdBy = data.created_by; // array
+  const createdBy = data.created_by;
   // @ts-ignore
   const numEpisodes = data.number_of_episodes;
   // @ts-ignore
@@ -138,166 +136,160 @@ export const DetailPage: React.FC = () => {
       {/* Back Button */}
       <button 
         onClick={() => window.history.length > 1 ? window.history.back() : navigate({ to: '/' })}
-        className="absolute top-4 left-4 md:top-6 md:left-6 z-50 flex items-center justify-center w-10 h-10 rounded-full border border-white/20 text-white hover:bg-white/10 hover:border-white/40 transition-all duration-200"
+        className="fixed top-4 left-4 sm:top-6 sm:left-6 z-50 flex items-center justify-center w-11 h-11 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 hover:border-white/40 transition-all duration-200 cursor-pointer shadow-lg"
         title="Back"
+        aria-label="Go Back"
       >
         <ArrowLeft size={18} />
       </button>
 
       {/* Backdrop Section */}
-      <div className="relative h-[85vh] min-h-[85vh] w-full bg-black overflow-hidden">
-        {backdropUrl && (
+      <div className="relative min-h-[580px] sm:min-h-[660px] md:min-h-[85vh] w-full bg-black overflow-hidden flex items-end justify-center pb-8 sm:pb-12 md:pb-16 pt-20 sm:pt-24">
+        {backdropUrl ? (
           <img
             src={backdropUrl}
             alt={title}
             className="absolute inset-0 w-full h-full object-cover object-[center_top]"
           />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-b from-[#141424] to-black" />
         )}
         
         {/* Gradient Overlays */}
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.6)_100%)]" />
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.7)_100%)]" />
         <div 
-          className="absolute bottom-0 left-0 right-0 h-full pointer-events-none" 
-          style={{ background: 'linear-gradient(to top, black 0%, black 15%, transparent 60%)' }} 
-        />
-
-        {/* Bottom Fade Overlay */}
-        <div 
-          className="absolute bottom-0 left-0 right-0 h-[200px] pointer-events-none z-10" 
-          style={{ background: 'linear-gradient(to top, #000000 0%, transparent 100%)' }} 
+          className="absolute inset-0 pointer-events-none" 
+          style={{ background: 'linear-gradient(to top, #07070d 0%, rgba(7,7,13,0.85) 25%, rgba(7,7,13,0.4) 60%, rgba(7,7,13,0.7) 100%)' }} 
         />
 
         {/* Main Info Block */}
-        <div className="absolute inset-0 flex items-end justify-center pb-10 md:pb-14 z-20 overflow-visible pointer-events-none">
-          <div className="flex flex-col md:flex-row items-end justify-center gap-[30px] md:gap-[48px] max-w-[1000px] w-full px-[24px] pointer-events-auto overflow-visible">
-            
-            {/* LEFT: Poster */}
-            {posterUrl && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.45, ease: "easeOut" as const }}
-                className="relative w-56 md:w-64 shrink-0 rounded-xl"
-                style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}
-              >
-                <img 
-                  src={posterUrl} 
-                  alt={title}
-                  className="w-full h-auto object-contain rounded-xl block"
-                />
-                {/* Poster Bottom Fade Overlay */}
-                <div 
-                  className="absolute inset-x-0 bottom-0 h-1/2 rounded-b-xl pointer-events-none" 
-                  style={{ background: 'linear-gradient(to top, black 0%, transparent 40%)' }} 
-                />
-              </motion.div>
+        <div className="relative z-20 flex flex-col md:flex-row items-center md:items-end justify-center gap-6 sm:gap-8 md:gap-12 max-w-[1000px] w-full px-4 sm:px-6 md:px-8 pointer-events-auto">
+          
+          {/* LEFT: Poster */}
+          {posterUrl && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.45, ease: "easeOut" as const }}
+              className="relative w-36 min-[375px]:w-44 sm:w-52 md:w-64 shrink-0 rounded-xl shadow-2xl overflow-hidden aspect-[2/3] bg-[#12121e] border border-white/10"
+            >
+              <img 
+                src={posterUrl} 
+                alt={title}
+                className="w-full h-full object-cover rounded-xl block"
+              />
+              <div 
+                className="absolute inset-x-0 bottom-0 h-1/3 rounded-b-xl pointer-events-none" 
+                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)' }} 
+              />
+            </motion.div>
+          )}
+
+          {/* RIGHT: Info Content */}
+          <motion.div 
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+            className="flex flex-col gap-3 sm:gap-4 max-w-2xl text-center md:text-left items-center md:items-start w-full"
+          >
+            {/* Title */}
+            <motion.h1 
+              variants={itemVariants}
+              className="font-[Georgia,'Times_New_Roman',serif] font-bold text-white leading-tight"
+              style={{ fontSize: 'clamp(1.6rem, 4vw, 3rem)' }}
+            >
+              {title}
+            </motion.h1>
+
+            {/* Tagline */}
+            {tagline && (
+              <motion.p variants={itemVariants} className="font-sans font-normal text-xs sm:text-sm md:text-base text-white/70 italic">
+                "{tagline}"
+              </motion.p>
             )}
 
-            {/* RIGHT: Info Content */}
-            <motion.div 
-              variants={containerVariants}
-              initial="hidden"
-              animate="show"
-              className="flex flex-col gap-[16px] max-w-2xl text-center md:text-left items-center md:items-start"
-            >
-              {/* Title */}
-              <motion.h1 
-                variants={itemVariants}
-                className="font-[Georgia,'Times_New_Roman',serif] font-bold text-white text-4xl md:text-5xl leading-tight"
-              >
-                {title}
-              </motion.h1>
-
-              {/* Tagline */}
-              {tagline && (
-                <motion.p variants={itemVariants} className="font-sans font-normal text-base text-white/70">
-                  {tagline}
-                </motion.p>
+            {/* Metadata Inline */}
+            <motion.div variants={itemVariants} className="flex items-center gap-2 flex-wrap font-sans text-xs sm:text-sm text-white justify-center md:justify-start">
+              {data.vote_average > 0 && (
+                <span className="text-[#4ade80] flex items-center gap-1 font-semibold">
+                  ★ {data.vote_average.toFixed(1)}
+                </span>
               )}
-
-              {/* Metadata Inline */}
-              <motion.div variants={itemVariants} className="flex items-center gap-[8px] flex-wrap font-sans text-sm text-white justify-center md:justify-start">
-                {data.vote_average > 0 && (
-                  <span className="text-[#4ade80] flex items-center gap-1 font-medium">
-                    ★ {data.vote_average.toFixed(1)} Match
-                  </span>
-                )}
-                {data.vote_average > 0 && <span>·</span>}
-                
-                {releaseYear && (
-                  <>
-                    <span>{releaseYear}</span>
-                    <span>·</span>
-                  </>
-                )}
-                
-                {numSeasons !== undefined && numSeasons > 0 ? (
-                  <>
-                    <span>{numSeasons} Season{numSeasons !== 1 ? 's' : ''} {numEpisodes ? `(${numEpisodes} Episodes)` : ''}</span>
-                  </>
-                ) : runtime ? (
-                  <>
-                    <span>{formatRuntime(runtime)}</span>
-                  </>
-                ) : null}
-                
-                {(numSeasons || runtime) && data.genres?.length > 0 && <span>·</span>}
-                
-                {data.genres?.length > 0 && (
-                  <span>
-                    {data.genres.map((g: any) => g.name.toLowerCase()).join(' · ')}
-                  </span>
-                )}
-              </motion.div>
-
-              {/* Action Buttons */}
-              <motion.div variants={itemVariants} className="flex gap-[16px] mt-2">
-                {trailer && (
-                  <button 
-                    onClick={() => window.open(`https://youtube.com/watch?v=${trailer.key}`, '_blank')}
-                    className="px-6 py-2.5 rounded text-black bg-white font-sans font-bold text-sm flex items-center gap-2 hover:bg-white/80 transition-all"
-                  >
-                    <Play size={18} fill="currentColor" stroke="none" />
-                    Watch Trailer
-                  </button>
-                )}
-                <button 
-                  className="px-6 py-2.5 rounded bg-black/40 border border-white/20 text-white font-sans font-bold text-sm flex items-center gap-2 hover:bg-black/60 transition-all"
-                >
-                  <Heart size={18} />
-                  My List
-                </button>
-              </motion.div>
-
-              {/* Icon Action Row */}
-              <motion.div variants={itemVariants} className="flex gap-[10px] mt-1">
-                <button title="Like" className="w-9 h-9 flex items-center justify-center rounded-full bg-black/40 border border-white/20 text-white hover:bg-black/60 transition-all">
-                  <ThumbsUp size={14} />
-                </button>
-                <button title="Not Interested" className="w-9 h-9 flex items-center justify-center rounded-full bg-black/40 border border-white/20 text-white hover:bg-black/60 transition-all">
-                  <Minus size={14} />
-                </button>
-                <button title="Favorite" className="w-9 h-9 flex items-center justify-center rounded-full bg-black/40 border border-white/20 text-white hover:bg-black/60 transition-all">
-                  <Heart size={14} />
-                </button>
-                <div className="relative">
-                  <button 
-                    title="Share" 
-                    onClick={handleShare}
-                    className="w-9 h-9 flex items-center justify-center rounded-full bg-black/40 border border-white/20 text-white hover:bg-black/60 transition-all"
-                  >
-                    <Share2 size={14} />
-                  </button>
-                  {showCopied && (
-                    <div className="absolute -top-[36px] left-1/2 -translate-x-1/2 bg-[#1c1c2e] text-white text-[12px] font-sans font-semibold px-3 py-1.5 rounded">
-                      Copied!
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-
+              {data.vote_average > 0 && <span>·</span>}
+              
+              {releaseYear && (
+                <>
+                  <span>{releaseYear}</span>
+                  <span>·</span>
+                </>
+              )}
+              
+              {numSeasons !== undefined && numSeasons > 0 ? (
+                <>
+                  <span>{numSeasons} Season{numSeasons !== 1 ? 's' : ''} {numEpisodes ? `(${numEpisodes} eps)` : ''}</span>
+                </>
+              ) : runtime ? (
+                <>
+                  <span>{formatRuntime(runtime)}</span>
+                </>
+              ) : null}
+              
+              {(numSeasons || runtime) && data.genres?.length > 0 && <span>·</span>}
+              
+              {data.genres?.length > 0 && (
+                <span className="text-white/80">
+                  {data.genres.map((g: any) => g.name).join(' · ')}
+                </span>
+              )}
             </motion.div>
-          </div>
+
+            {/* Action Buttons */}
+            <motion.div variants={itemVariants} className="flex items-center justify-center md:justify-start gap-3 mt-1 sm:mt-2 flex-wrap w-full sm:w-auto">
+              {trailer && (
+                <button 
+                  onClick={() => window.open(`https://youtube.com/watch?v=${trailer.key}`, '_blank')}
+                  className="min-h-[44px] px-5 sm:px-6 rounded-full text-black bg-white font-sans font-bold text-xs sm:text-sm flex items-center justify-center gap-2 hover:bg-white/90 active:scale-[0.98] transition-all cursor-pointer shadow-md"
+                >
+                  <Play size={16} fill="currentColor" stroke="none" />
+                  Watch Trailer
+                </button>
+              )}
+              <button 
+                className="min-h-[44px] px-5 sm:px-6 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white font-sans font-bold text-xs sm:text-sm flex items-center justify-center gap-2 hover:bg-white/10 active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <Heart size={16} />
+                My List
+              </button>
+            </motion.div>
+
+            {/* Icon Action Row */}
+            <motion.div variants={itemVariants} className="flex items-center justify-center md:justify-start gap-2.5 mt-1">
+              <button title="Like" className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white hover:bg-white/10 transition-all cursor-pointer">
+                <ThumbsUp size={15} />
+              </button>
+              <button title="Not Interested" className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white hover:bg-white/10 transition-all cursor-pointer">
+                <Minus size={15} />
+              </button>
+              <button title="Favorite" className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white hover:bg-white/10 transition-all cursor-pointer">
+                <Heart size={15} />
+              </button>
+              <div className="relative">
+                <button 
+                  title="Share" 
+                  onClick={handleShare}
+                  className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white hover:bg-white/10 transition-all cursor-pointer"
+                >
+                  <Share2 size={15} />
+                </button>
+                {showCopied && (
+                  <div className="absolute -top-9 left-1/2 -translate-x-1/2 bg-[var(--color-surface)] text-white text-xs font-sans font-semibold px-3 py-1 rounded shadow-lg border border-[var(--color-border-subtle)] whitespace-nowrap">
+                    Link copied!
+                  </div>
+                )}
+              </div>
+            </motion.div>
+
+          </motion.div>
         </div>
       </div>
 
@@ -306,130 +298,133 @@ export const DetailPage: React.FC = () => {
         variants={containerVariants}
         initial="hidden"
         whileInView="show"
-        viewport={{ once: true, margin: "-100px" }}
-        className="w-full max-w-[1000px] mx-auto px-[24px] pt-6 md:pt-8 pb-12 flex flex-col gap-[36px] md:gap-[48px]"
+        viewport={{ once: true, margin: "-80px" }}
+        className="w-full max-w-[1000px] mx-auto px-4 sm:px-8 md:px-12 pt-6 md:pt-10 pb-12 flex flex-col gap-8 sm:gap-10 md:gap-12"
       >
         
         {/* OVERVIEW SECTION */}
         {data.overview && (
           <motion.section variants={itemVariants}>
-            <p className="font-sans font-normal text-base md:text-lg text-[#e2e2e2] leading-[1.6] max-w-[820px]">
+            <h2 className="font-sans font-medium text-[11px] uppercase tracking-[0.14em] text-[#5a5a72] mb-3">
+              OVERVIEW
+            </h2>
+            <p className="font-sans font-normal text-sm sm:text-base md:text-lg text-[#e2e2e2] leading-[1.6] max-w-[840px]">
               {data.overview}
             </p>
-            <div className="border-t border-[rgba(255,255,255,0.06)] mt-8 md:mt-10 w-full" />
+            <div className="border-t border-[rgba(255,255,255,0.06)] mt-8 sm:mt-10 w-full" />
           </motion.section>
         )}
 
         {/* TOP CAST SECTION */}
         {data.credits?.cast && data.credits.cast.length > 0 && (
           <motion.section variants={itemVariants}>
-            <h2 className="font-sans font-medium text-[11px] uppercase tracking-[0.12em] text-[#5a5a72] mb-[14px]">
+            <h2 className="font-sans font-medium text-[11px] uppercase tracking-[0.14em] text-[#5a5a72] mb-4">
               TOP CAST
             </h2>
-            <div className="flex overflow-x-auto gap-[28px] pb-[8px] no-scrollbar">
-              {data.credits.cast.slice(0, 10).map(actor => (
+            <div className="flex overflow-x-auto gap-4 sm:gap-6 pb-3 no-scrollbar snap-x snap-mandatory">
+              {data.credits.cast.slice(0, 12).map(actor => (
                 <div 
                   key={actor.id} 
-                  className="w-[88px] shrink-0 flex flex-col items-center gap-[10px] cursor-pointer"
+                  className="w-20 sm:w-24 shrink-0 flex flex-col items-center gap-2 cursor-pointer snap-start group"
                   onClick={() => navigate({ to: '/person/$id', params: { id: actor.id.toString() } })}
                 >
                   {actor.profile_path ? (
                     <img 
                       src={`${TMDB_IMAGE_BASE}w185${actor.profile_path}`} 
                       alt={actor.name}
-                      className="w-[78px] h-[78px] rounded-full object-cover border-[2px] border-[rgba(255,255,255,0.1)] transition-colors"
+                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-[rgba(255,255,255,0.1)] group-hover:border-[var(--color-accent)] transition-colors shadow-md block"
                     />
                   ) : (
-                    <div className="w-[78px] h-[78px] rounded-full bg-[#1c1c2e] border-[2px] border-[rgba(255,255,255,0.1)] flex items-center justify-center transition-colors">
-                      <User size={26} className="text-[#5a5a72]" />
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#1c1c2e] border-2 border-[rgba(255,255,255,0.1)] flex items-center justify-center group-hover:border-[var(--color-accent)] transition-colors shadow-md">
+                      <User size={24} className="text-[#5a5a72]" />
                     </div>
                   )}
                   <div className="flex flex-col w-full text-center">
-                    <span className="font-sans font-semibold text-[12px] text-[#eeeef5] whitespace-nowrap overflow-hidden text-ellipsis" title={actor.name}>
+                    <span className="font-sans font-semibold text-xs text-[#eeeef5] truncate" title={actor.name}>
                       {actor.name}
                     </span>
-                    <span className="font-sans font-normal text-[11px] text-[#5a5a72] whitespace-nowrap overflow-hidden text-ellipsis" title={actor.character}>
+                    <span className="font-sans font-normal text-[10px] sm:text-[11px] text-[#5a5a72] truncate" title={actor.character}>
                       {actor.character}
                     </span>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="border-t border-[rgba(255,255,255,0.06)] mt-[48px] w-full" />
+            <div className="border-t border-[rgba(255,255,255,0.06)] mt-8 sm:mt-10 w-full" />
           </motion.section>
         )}
 
         {/* DETAILS GRID SECTION */}
         <motion.section variants={itemVariants}>
-          <h2 className="font-sans font-medium text-[11px] uppercase tracking-[0.12em] text-[#5a5a72] mb-[14px]">
+          <h2 className="font-sans font-medium text-[11px] uppercase tracking-[0.14em] text-[#5a5a72] mb-4">
             DETAILS
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-x-[32px] gap-y-[20px] max-w-[820px]">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 sm:gap-x-8 gap-y-4 sm:gap-y-5 max-w-[840px]">
             {data.status && (
               <div className="flex flex-col">
-                <span className="font-sans font-medium text-[11px] uppercase tracking-[0.1em] text-[#5a5a72] mb-[4px]">STATUS</span>
-                <span className="font-sans font-medium text-[14px] text-[#eeeef5]">{data.status}</span>
+                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">STATUS</span>
+                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{data.status}</span>
               </div>
             )}
             {director && (
               <div className="flex flex-col">
-                <span className="font-sans font-medium text-[11px] uppercase tracking-[0.1em] text-[#5a5a72] mb-[4px]">DIRECTOR</span>
-                <span className="font-sans font-medium text-[14px] text-[#eeeef5]">{director.name}</span>
+                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">DIRECTOR</span>
+                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{director.name}</span>
               </div>
             )}
             {createdBy && createdBy.length > 0 && (
               <div className="flex flex-col">
-                <span className="font-sans font-medium text-[11px] uppercase tracking-[0.1em] text-[#5a5a72] mb-[4px]">CREATOR</span>
-                <span className="font-sans font-medium text-[14px] text-[#eeeef5]">{createdBy[0].name}</span>
+                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">CREATOR</span>
+                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{createdBy[0].name}</span>
               </div>
             )}
             {data.original_language && (
               <div className="flex flex-col">
-                <span className="font-sans font-medium text-[11px] uppercase tracking-[0.1em] text-[#5a5a72] mb-[4px]">LANGUAGE</span>
-                <span className="font-sans font-medium text-[14px] text-[#eeeef5] uppercase">{data.original_language}</span>
+                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">LANGUAGE</span>
+                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5] uppercase">{data.original_language}</span>
               </div>
             )}
             {data.budget !== undefined && data.budget > 0 && (
               <div className="flex flex-col">
-                <span className="font-sans font-medium text-[11px] uppercase tracking-[0.1em] text-[#5a5a72] mb-[4px]">BUDGET</span>
-                <span className="font-sans font-medium text-[14px] text-[#eeeef5]">${data.budget.toLocaleString()}</span>
+                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">BUDGET</span>
+                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">${data.budget.toLocaleString()}</span>
               </div>
             )}
             {data.revenue !== undefined && data.revenue > 0 && (
               <div className="flex flex-col">
-                <span className="font-sans font-medium text-[11px] uppercase tracking-[0.1em] text-[#5a5a72] mb-[4px]">REVENUE</span>
-                <span className="font-sans font-medium text-[14px] text-[#eeeef5]">${data.revenue.toLocaleString()}</span>
+                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">REVENUE</span>
+                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">${data.revenue.toLocaleString()}</span>
               </div>
             )}
             {numEpisodes !== undefined && (
               <div className="flex flex-col">
-                <span className="font-sans font-medium text-[11px] uppercase tracking-[0.1em] text-[#5a5a72] mb-[4px]">EPISODES</span>
-                <span className="font-sans font-medium text-[14px] text-[#eeeef5]">{numEpisodes}</span>
+                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">EPISODES</span>
+                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{numEpisodes}</span>
               </div>
             )}
             {numSeasons !== undefined && (
               <div className="flex flex-col">
-                <span className="font-sans font-medium text-[11px] uppercase tracking-[0.1em] text-[#5a5a72] mb-[4px]">SEASONS</span>
-                <span className="font-sans font-medium text-[14px] text-[#eeeef5]">{numSeasons}</span>
+                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">SEASONS</span>
+                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{numSeasons}</span>
               </div>
             )}
             {data.vote_count !== undefined && data.vote_count > 0 && (
               <div className="flex flex-col">
-                <span className="font-sans font-medium text-[11px] uppercase tracking-[0.1em] text-[#5a5a72] mb-[4px]">VOTES</span>
-                <span className="font-sans font-medium text-[14px] text-[#eeeef5]">{data.vote_count.toLocaleString()} votes</span>
+                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">VOTES</span>
+                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{data.vote_count.toLocaleString()} votes</span>
               </div>
             )}
           </div>
-          <div className="border-t border-[rgba(255,255,255,0.06)] mt-[48px] w-full" />
+          <div className="border-t border-[rgba(255,255,255,0.06)] mt-8 sm:mt-10 w-full" />
         </motion.section>
 
         {/* YOU MAY ALSO LIKE SECTION */}
         {data.similar?.results && data.similar.results.length > 0 && (
           <motion.section variants={itemVariants}>
-            <h2 className="font-sans font-medium text-[11px] uppercase tracking-[0.12em] text-[#5a5a72] mb-[14px]">
+            <h2 className="font-sans font-medium text-[11px] uppercase tracking-[0.14em] text-[#5a5a72] mb-4">
               YOU MAY ALSO LIKE
             </h2>
-            <div className="flex overflow-x-auto gap-[14px] pb-[8px] no-scrollbar">
+            <div className="flex overflow-x-auto gap-2.5 sm:gap-3.5 pb-3 no-scrollbar snap-x snap-mandatory">
               {data.similar.results.slice(0, 12).map((item) => {
                 const simImageUrl = item.poster_path ? `${TMDB_IMAGE_BASE}w342${item.poster_path}` : null;
                 const simTitle = item.title || item.name;
@@ -440,31 +435,41 @@ export const DetailPage: React.FC = () => {
                     key={item.id}
                     onClick={() => navigate({ to: '/detail/$id', params: { id: item.id.toString() }, search: { type: item.title ? 'movie' : 'tv' } })}
                     whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
                     transition={{ duration: 0.18 }}
-                    className="relative w-[185px] shrink-0 aspect-[2/3] rounded-[10px] overflow-hidden cursor-pointer group bg-[#141420]"
+                    className="relative w-[130px] min-[375px]:w-[140px] sm:w-[160px] md:w-[180px] shrink-0 aspect-[2/3] rounded-[var(--radius)] overflow-hidden cursor-pointer group bg-[#141420] snap-start select-none shadow-md"
                   >
                     {simImageUrl ? (
                       <img 
                         src={simImageUrl} 
                         alt={simTitle}
                         loading="lazy"
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover block"
                       />
                     ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-[#5a5a72] p-4 text-center">
-                        <span className="text-sm font-sans">{simTitle}</span>
+                      <div className="w-full h-full flex flex-col items-center justify-center text-[#5a5a72] p-3 text-center">
+                        <span className="text-xs font-sans">{simTitle}</span>
+                      </div>
+                    )}
+
+                    {/* Mobile Rating Badge */}
+                    {simVote !== undefined && simVote > 0 && (
+                      <div className="md:hidden absolute top-2 right-2 z-10 flex items-center gap-1 bg-black/70 backdrop-blur-md px-1.5 py-0.5 rounded text-[10px] font-sans font-bold text-white">
+                        <Star fill="#f5c518" stroke="none" size={10} />
+                        <span>{simVote.toFixed(1)}</span>
                       </div>
                     )}
                     
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
+                    {/* Desktop Hover Overlay */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none hidden md:block"
                          style={{ background: 'linear-gradient(to top, rgba(7,7,13,0.95) 0%, transparent 55%)' }}>
-                      <div className="absolute bottom-[10px] left-[10px] right-[10px] flex flex-col gap-1">
-                        <h3 className="text-white font-sans font-semibold text-[13px] line-clamp-2 leading-tight">
+                      <div className="absolute bottom-2.5 left-2.5 right-2.5 flex flex-col gap-1">
+                        <h3 className="text-white font-sans font-semibold text-xs line-clamp-2 leading-tight">
                           {simTitle}
                         </h3>
                         {simVote !== undefined && simVote > 0 && (
-                          <div className="flex items-center gap-1 text-[#9898b0] font-sans text-[12px]">
-                            <Star fill="#f5c518" stroke="none" size={14} />
+                          <div className="flex items-center gap-1 text-[#9898b0] font-sans text-[11px]">
+                            <Star fill="#f5c518" stroke="none" size={12} />
                             <span>{simVote.toFixed(1)}</span>
                           </div>
                         )}
@@ -481,3 +486,4 @@ export const DetailPage: React.FC = () => {
     </div>
   );
 };
+

@@ -19,16 +19,51 @@
 }
 
 @layer base {
+  :root {
+    --text-h1: clamp(1.8rem, 4vw, 3rem);
+    --text-h2: clamp(1.4rem, 3vw, 2.2rem);
+    --text-h3: clamp(1.1rem, 2vw, 1.6rem);
+    --text-body: clamp(0.875rem, 1.5vw, 1rem);
+    --text-small: clamp(0.75rem, 1.2vw, 0.875rem);
+  }
+
+  html {
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-text-primary);
     font-family: var(--font-sans);
+    font-size: var(--text-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    min-width: 320px;
+  }
+
+  h1 {
+    font-size: var(--text-h1);
+  }
+
+  h2 {
+    font-size: var(--text-h2);
+  }
+
+  h3 {
+    font-size: var(--text-h3);
+  }
+
+  img, video {
+    max-width: 100%;
+    height: auto;
+    object-fit: cover;
   }
 }
 
-/* Custom hide-scrollbar class */
+
+/* Custom utilities */
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -36,6 +71,20 @@
   .no-scrollbar {
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
+  }
+
+  .snap-x-mandatory {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .snap-start {
+    scroll-snap-align: start;
+  }
+
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
 
@@ -51,4 +100,5 @@
 .animate-shimmer {
   animation: shimmer 1.5s ease infinite;
 }
+
 
