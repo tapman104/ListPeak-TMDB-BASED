@@ -25,27 +25,58 @@ const itemVariants = {
   }
 };
 
-const formatDate = (dateString: string) => {
-  const [year, month, day] = dateString.split('-');
-  const date = new Date(Number(year), Number(month) - 1, Number(day));
-  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+const formatDate = (dateString?: string | null) => {
+  if (!dateString) return '';
+  try {
+    const parts = dateString.split('-');
+    if (parts.length === 3) {
+      const [year, month, day] = parts;
+      const date = new Date(Number(year), Number(month) - 1, Number(day));
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      }
+    }
+    const fallbackDate = new Date(dateString);
+    if (!isNaN(fallbackDate.getTime())) {
+      return fallbackDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+    return dateString;
+  } catch {
+    return dateString || '';
+  }
 };
 
-const calculateAge = (birthDate: string, deathDate: string | null) => {
-  const [bYear, bMonth, bDay] = birthDate.split('-');
-  const birth = new Date(Number(bYear), Number(bMonth) - 1, Number(bDay));
-  
-  const end = deathDate ? (() => {
-    const [dYear, dMonth, dDay] = deathDate.split('-');
-    return new Date(Number(dYear), Number(dMonth) - 1, Number(dDay));
-  })() : new Date();
-  
-  let age = end.getFullYear() - birth.getFullYear();
-  const m = end.getMonth() - birth.getMonth();
-  if (m < 0 || (m === 0 && end.getDate() < birth.getDate())) {
-    age--;
+const calculateAge = (birthDate?: string | null, deathDate?: string | null) => {
+  if (!birthDate) return null;
+  try {
+    const parts = birthDate.split('-');
+    const bYear = Number(parts[0]);
+    const bMonth = parts[1] ? Number(parts[1]) - 1 : 0;
+    const bDay = parts[2] ? Number(parts[2]) : 1;
+    const birth = new Date(bYear, bMonth, bDay);
+    if (isNaN(birth.getTime())) return null;
+
+    let end = new Date();
+    if (deathDate) {
+      const dParts = deathDate.split('-');
+      const dYear = Number(dParts[0]);
+      const dMonth = dParts[1] ? Number(dParts[1]) - 1 : 0;
+      const dDay = dParts[2] ? Number(dParts[2]) : 1;
+      const death = new Date(dYear, dMonth, dDay);
+      if (!isNaN(death.getTime())) {
+        end = death;
+      }
+    }
+
+    let age = end.getFullYear() - birth.getFullYear();
+    const m = end.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && end.getDate() < birth.getDate())) {
+      age--;
+    }
+    return isNaN(age) || age < 0 ? null : age;
+  } catch {
+    return null;
   }
-  return age;
 };
 
 // Reusable row for credits
@@ -146,19 +177,29 @@ export const PersonPage: React.FC = () => {
   
   const [showFullBio, setShowFullBio] = useState(false);
 
-  if (!apiKey) return null;
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
 
-  const tmdb = createTMDBClient(apiKey);
+  const personId = id ? Number(id) : NaN;
+
+  const tmdb = apiKey ? createTMDBClient(apiKey) : null;
 
   const { data: details, isLoading: isLoadingDetails, error: errorDetails } = useQuery({
     queryKey: ['person', id],
-    queryFn: () => tmdb.getPersonDetails(Number(id)),
+    queryFn: () => tmdb!.getPersonDetails(personId),
+    enabled: !!tmdb && !isNaN(personId),
   });
 
   const { data: credits, isLoading: isLoadingCredits } = useQuery({
     queryKey: ['person-credits', id],
-    queryFn: () => tmdb.getPersonCredits(Number(id)),
+    queryFn: () => tmdb!.getPersonCredits(personId),
+    enabled: !!tmdb && !isNaN(personId),
   });
+
+  if (!apiKey) {
+    return null;
+  }
 
   if (isLoadingDetails) {
     return (
@@ -190,11 +231,11 @@ export const PersonPage: React.FC = () => {
         <AlertCircle size={48} className="text-[#5a5a72] mb-4" />
         <h1 className="font-sans font-semibold text-[20px] text-[#eeeef5] mb-2">Could not load person</h1>
         <p className="font-sans font-normal text-[14px] text-[#5a5a72] mb-6">
-          The person may not exist or your API key may be invalid.
+          The person could not be found or there was an issue contacting TMDb.
         </p>
         <button 
-          onClick={() => window.history.back()}
-          className="flex items-center justify-center gap-2 h-[36px] px-4 rounded-full bg-[rgba(15,15,26,0.7)] backdrop-blur-[8px] border border-[rgba(255,255,255,0.1)] text-[#eeeef5] font-sans font-medium text-[13px] hover:bg-[rgba(124,92,252,0.2)] hover:border-[rgba(124,92,252,0.5)] transition-all duration-200"
+          onClick={() => window.history.length > 1 ? window.history.back() : navigate({ to: '/' })}
+          className="flex items-center justify-center gap-2 h-[36px] px-4 rounded-full bg-[rgba(15,15,26,0.7)] backdrop-blur-[8px] border border-[rgba(255,255,255,0.1)] text-[#eeeef5] font-sans font-medium text-[13px] hover:bg-[rgba(124,92,252,0.2)] hover:border-[rgba(124,92,252,0.5)] transition-all duration-200 cursor-pointer"
         >
           <ArrowLeft size={15} /> Back
         </button>
@@ -205,24 +246,35 @@ export const PersonPage: React.FC = () => {
   const profileUrl = details.profile_path ? `${TMDB_IMAGE_BASE}original${details.profile_path}` : '';
   const avatarUrl = details.profile_path ? `${TMDB_IMAGE_BASE}w342${details.profile_path}` : '';
   
-  // Prepare credits
-  const validCredits = credits?.cast?.filter(c => c.poster_path && c.vote_average > 0) || [];
+  // Prepare credits safely
+  const rawCredits = credits?.cast || [];
   
-  const knownFor = [...validCredits]
+  const knownFor = [...rawCredits]
+    .filter(c => c.poster_path)
     .sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0))
     .slice(0, 20);
 
-  const movies = validCredits
-    .filter(c => c.media_type === 'movie')
-    .sort((a, b) => new Date(b.release_date || 0).getTime() - new Date(a.release_date || 0).getTime());
+  const movies = rawCredits
+    .filter(c => c.media_type === 'movie' || (!c.media_type && (c.title || c.release_date)))
+    .sort((a, b) => {
+      const dateA = a.release_date ? new Date(a.release_date).getTime() : 0;
+      const dateB = b.release_date ? new Date(b.release_date).getTime() : 0;
+      return (isNaN(dateB) ? 0 : dateB) - (isNaN(dateA) ? 0 : dateA);
+    });
 
-  const shows = validCredits
-    .filter(c => c.media_type === 'tv')
-    .sort((a, b) => new Date(b.first_air_date || 0).getTime() - new Date(a.first_air_date || 0).getTime());
+  const shows = rawCredits
+    .filter(c => c.media_type === 'tv' || (!c.media_type && (c.name || c.first_air_date)))
+    .sort((a, b) => {
+      const dateA = a.first_air_date ? new Date(a.first_air_date).getTime() : 0;
+      const dateB = b.first_air_date ? new Date(b.first_air_date).getTime() : 0;
+      return (isNaN(dateB) ? 0 : dateB) - (isNaN(dateA) ? 0 : dateA);
+    });
 
-  const movieCount = validCredits.filter(c => c.media_type === 'movie').length;
-  const tvCount = validCredits.filter(c => c.media_type === 'tv').length;
-  const totalCount = validCredits.length;
+  const movieCount = movies.length;
+  const tvCount = shows.length;
+  const totalCount = rawCredits.length;
+
+  const age = calculateAge(details.birthday, details.deathday);
 
   return (
     <div className="min-h-screen bg-black pb-20 overflow-x-hidden">
@@ -306,10 +358,10 @@ export const PersonPage: React.FC = () => {
                     <span className="text-[#eeeef5] text-[14px] font-medium">{formatDate(details.birthday)}</span>
                   </div>
                 )}
-                {details.birthday && (
+                {details.birthday && age !== null && (
                   <div className="flex flex-col text-left">
                     <span className="text-[#5a5a72] text-[10px] uppercase tracking-widest font-semibold mb-1">Age</span>
-                    <span className="text-[#eeeef5] text-[14px] font-medium">{details.deathday ? `† Age ${calculateAge(details.birthday, details.deathday)}` : calculateAge(details.birthday, null)}</span>
+                    <span className="text-[#eeeef5] text-[14px] font-medium">{details.deathday ? `† Age ${age}` : age}</span>
                   </div>
                 )}
                 {details.place_of_birth && (

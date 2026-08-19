@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useSearch, useNavigate } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
@@ -34,6 +34,10 @@ export const DetailPage: React.FC = () => {
   const apiKey = useKeyStore((state) => state.apiKey);
   
   const [showCopied, setShowCopied] = useState(false);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
 
   if (!apiKey) return null;
 
