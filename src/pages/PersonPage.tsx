@@ -236,7 +236,7 @@ export const PersonPage: React.FC = () => {
       </button>
 
       {/* Hero Section */}
-      <div className="relative h-[65vh] min-h-[500px] w-full bg-black overflow-hidden flex items-end justify-center">
+      <div className="relative min-h-[70vh] w-full bg-black overflow-hidden flex items-end justify-center pb-12">
         {profileUrl && (
           <img
             src={profileUrl}
@@ -248,16 +248,15 @@ export const PersonPage: React.FC = () => {
         {/* Overlay Gradients */}
         <div 
           className="absolute inset-0 pointer-events-none z-10" 
-          style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)' }} 
+          style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.8) 0%, transparent 60%)' }} 
         />
         <div 
-          className="absolute inset-0 pointer-events-none z-10" 
-          style={{ background: 'linear-gradient(to top, black 0%, black 15%, transparent 60%)' }} 
+          className="absolute bottom-0 left-0 right-0 h-48 pointer-events-none z-10" 
+          style={{ background: 'linear-gradient(to top, black 0%, transparent 100%)' }} 
         />
 
         {/* Hero Content Block */}
-        <div className="absolute inset-0 flex items-end justify-center pb-10 md:pb-14 z-20 overflow-visible pointer-events-none">
-          <div className="flex flex-col md:flex-row items-end justify-center gap-[30px] md:gap-[48px] max-w-[1000px] w-full px-[24px] pointer-events-auto">
+        <div className="relative z-20 flex flex-col md:flex-row items-end justify-center gap-[30px] md:gap-[48px] max-w-[1000px] w-full px-[24px] pointer-events-auto">
             
             {/* LEFT: Portrait Photo */}
             {avatarUrl && (
@@ -265,16 +264,16 @@ export const PersonPage: React.FC = () => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.45, ease: "easeOut" as const }}
-                className="relative w-48 shrink-0 rounded-xl shadow-2xl"
+                className="relative w-52 h-72 shrink-0 rounded-xl shadow-2xl overflow-hidden"
               >
                 <img 
                   src={avatarUrl} 
                   alt={details.name}
-                  className="w-full h-auto object-cover rounded-xl block"
+                  className="w-full h-full object-cover rounded-xl block"
                 />
                 <div 
-                  className="absolute inset-x-0 bottom-0 h-1/2 rounded-b-xl pointer-events-none" 
-                  style={{ background: 'linear-gradient(to top, black 0%, transparent 40%)' }} 
+                  className="absolute inset-x-0 bottom-0 h-1/2 pointer-events-none" 
+                  style={{ background: 'linear-gradient(to top, black 0%, transparent 50%)' }} 
                 />
               </motion.div>
             )}
@@ -368,7 +367,7 @@ export const PersonPage: React.FC = () => {
         className="w-full max-w-[1000px] mx-auto px-6 md:px-16 pt-10 pb-12 flex flex-col gap-12"
       >
         {/* Biography Section */}
-        <motion.section variants={itemVariants} className="bg-black">
+        <motion.section variants={itemVariants} className="bg-black max-w-3xl">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-sans font-medium text-[11px] uppercase tracking-widest text-[#5a5a72]">
               BIOGRAPHY
