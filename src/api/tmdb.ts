@@ -75,10 +75,14 @@ export interface PersonCredit {
   id: number;
   title?: string;
   name?: string;
-  media_type: 'movie' | 'tv';
-  character: string;
+  media_type?: 'movie' | 'tv';
+  character?: string;
+  job?: string;
+  department?: string;
   poster_path: string | null;
-  vote_average: number;
+  vote_average?: number;
+  vote_count?: number;
+  popularity?: number;
   release_date?: string;
   first_air_date?: string;
 }
@@ -110,7 +114,7 @@ export const createTMDBClient = (apiKey: string) => {
     getMediaDetails: (id: string, type: 'movie' | 'tv') => 
       fetchTMDB<TMDBDetail>(`/${type}/${id}?append_to_response=credits,videos,similar`),
     getPersonDetails: (id: number) => fetchTMDB<PersonDetail>(`/person/${id}`),
-    getPersonCredits: (id: number) => fetchTMDB<{ cast: PersonCredit[] }>(`/person/${id}/combined_credits`),
+    getPersonCredits: (id: number) => fetchTMDB<{ cast: PersonCredit[]; crew?: PersonCredit[] }>(`/person/${id}/combined_credits`),
     getPersonImages: (id: number) => fetchTMDB<{ profiles: { file_path: string }[] }>(`/person/${id}/images`),
   };
 };

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
-import { ArrowLeft, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, AlertCircle, ChevronLeft, ChevronRight, User } from 'lucide-react';
 import { useKeyStore } from '../store/keyStore';
 import { createTMDBClient, type PersonCredit, type PersonDetail } from '../api/tmdb';
 import { TMDB_IMAGE_BASE } from '../lib/constants';
@@ -246,16 +246,33 @@ export const PersonPage: React.FC = () => {
   const profileUrl = details.profile_path ? `${TMDB_IMAGE_BASE}original${details.profile_path}` : '';
   const avatarUrl = details.profile_path ? `${TMDB_IMAGE_BASE}w342${details.profile_path}` : '';
   
-  // Prepare credits safely
-  const rawCredits = credits?.cast || [];
+  // Prepare credits safely (combining cast and crew without duplicates)
+  const castCredits = credits?.cast || [];
+  const crewCredits = credits?.crew || [];
   
+  // Combine credits, deduplicating by ID and media_type
+  const creditMap = new Map<string, PersonCredit>();
+  [...castCredits, ...crewCredits].forEach((item) => {
+    const key = `${item.media_type || 'media'}-${item.id}`;
+    if (!creditMap.has(key)) {
+      creditMap.set(key, item);
+    }
+  });
+  const rawCredits = Array.from(creditMap.values());
+
   const knownFor = [...rawCredits]
-    .filter(c => c.poster_path)
-    .sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0))
+    .sort((a, b) => {
+      // Prioritize items with poster_path first, then by popularity or vote score
+      if (a.poster_path && !b.poster_path) return -1;
+      if (!a.poster_path && b.poster_path) return 1;
+      const scoreB = (b.popularity || 0) + (b.vote_average || 0) * (b.vote_count || 1);
+      const scoreA = (a.popularity || 0) + (a.vote_average || 0) * (a.vote_count || 1);
+      return scoreB - scoreA;
+    })
     .slice(0, 20);
 
   const movies = rawCredits
-    .filter(c => c.media_type === 'movie' || (!c.media_type && (c.title || c.release_date)))
+    .filter(c => c.media_type === 'movie' || (!c.media_type && (Boolean(c.title) || Boolean(c.release_date))))
     .sort((a, b) => {
       const dateA = a.release_date ? new Date(a.release_date).getTime() : 0;
       const dateB = b.release_date ? new Date(b.release_date).getTime() : 0;
@@ -263,7 +280,7 @@ export const PersonPage: React.FC = () => {
     });
 
   const shows = rawCredits
-    .filter(c => c.media_type === 'tv' || (!c.media_type && (c.name || c.first_air_date)))
+    .filter(c => c.media_type === 'tv' || (!c.media_type && (Boolean(c.name) || Boolean(c.first_air_date))))
     .sort((a, b) => {
       const dateA = a.first_air_date ? new Date(a.first_air_date).getTime() : 0;
       const dateB = b.first_air_date ? new Date(b.first_air_date).getTime() : 0;
@@ -289,18 +306,25 @@ export const PersonPage: React.FC = () => {
 
       {/* Hero Section */}
       <div className="relative min-h-[70vh] w-full bg-black overflow-hidden flex items-end justify-center pb-12">
-        {profileUrl && (
+        {profileUrl ? (
           <img
             src={profileUrl}
             alt={details.name}
             className="absolute inset-0 w-full h-full object-cover object-top"
+          />
+        ) : (
+          <div 
+            className="absolute inset-0 w-full h-full"
+            style={{
+              background: 'radial-gradient(ellipse at 50% 30%, #1a1a2e 0%, #0d0d18 60%, #000000 100%)'
+            }}
           />
         )}
         
         {/* Overlay Gradients */}
         <div 
           className="absolute inset-0 pointer-events-none z-10" 
-          style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.8) 0%, transparent 60%)' }} 
+          style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.8) 100%)' }} 
         />
         <div 
           className="absolute bottom-0 left-0 right-0 h-48 pointer-events-none z-10" 
@@ -310,25 +334,34 @@ export const PersonPage: React.FC = () => {
         {/* Hero Content Block */}
         <div className="relative z-20 flex flex-col md:flex-row items-end justify-center gap-[30px] md:gap-[48px] max-w-[1000px] w-full px-[24px] pointer-events-auto">
             
-            {/* LEFT: Portrait Photo */}
-            {avatarUrl && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.45, ease: "easeOut" as const }}
-                className="relative w-52 h-72 shrink-0 rounded-xl shadow-2xl overflow-hidden"
-              >
-                <img 
-                  src={avatarUrl} 
-                  alt={details.name}
-                  className="w-full h-full object-cover rounded-xl block"
-                />
-                <div 
-                  className="absolute inset-x-0 bottom-0 h-1/2 pointer-events-none" 
-                  style={{ background: 'linear-gradient(to top, black 0%, transparent 50%)' }} 
-                />
-              </motion.div>
-            )}
+            {/* LEFT: Portrait Photo or Fallback */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.45, ease: "easeOut" as const }}
+              className="relative w-52 h-72 shrink-0 rounded-xl shadow-2xl overflow-hidden bg-[#12121e] border border-white/10 flex items-center justify-center"
+            >
+              {avatarUrl ? (
+                <>
+                  <img 
+                    src={avatarUrl} 
+                    alt={details.name}
+                    className="w-full h-full object-cover rounded-xl block"
+                  />
+                  <div 
+                    className="absolute inset-x-0 bottom-0 h-1/2 pointer-events-none" 
+                    style={{ background: 'linear-gradient(to top, black 0%, transparent 50%)' }} 
+                  />
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center p-6 text-center text-[#5a5a72]">
+                  <User size={56} className="mb-3 text-[#5a5a72]/60" />
+                  <span className="text-xs font-medium uppercase tracking-wider text-[#9898b0] line-clamp-2">
+                    {details.name}
+                  </span>
+                </div>
+              )}
+            </motion.div>
 
             {/* RIGHT: Info */}
             <motion.div 
@@ -458,9 +491,19 @@ export const PersonPage: React.FC = () => {
         {/* Filmography Sections */}
         {!isLoadingCredits && (
           <>
-            <CreditRow title="KNOWN FOR" credits={knownFor} />
-            <CreditRow title={`MOVIES (${movieCount})`} credits={movies} />
-            <CreditRow title={`TV SHOWS (${tvCount})`} credits={shows} />
+            {rawCredits.length > 0 ? (
+              <>
+                {knownFor.length > 0 && <CreditRow title="KNOWN FOR" credits={knownFor} />}
+                {movies.length > 0 && <CreditRow title={`MOVIES (${movieCount})`} credits={movies} />}
+                {shows.length > 0 && <CreditRow title={`TV SHOWS (${tvCount})`} credits={shows} />}
+              </>
+            ) : (
+              <motion.div variants={itemVariants} className="py-12 text-center">
+                <p className="text-[#5a5a72] font-sans text-sm md:text-base">
+                  No filmography data available for this person.
+                </p>
+              </motion.div>
+            )}
           </>
         )}
       </motion.div>
