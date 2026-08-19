@@ -339,9 +339,8 @@ export const PersonPage: React.FC = () => {
             </motion.div>
           </div>
         </div>
-      </div>
 
-      {/* Stats Bar */}
+        {/* Stats Bar */}
       <div className="flex items-center justify-center gap-8 md:gap-16 py-5 bg-[#0a0a10] border-y border-[rgba(255,255,255,0.04)] shadow-inner w-full px-4">
         <div className="flex flex-col items-center gap-1">
           <span className="text-white text-2xl font-bold font-sans">{movieCount}</span>
