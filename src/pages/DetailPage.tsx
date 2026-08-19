@@ -3,7 +3,7 @@ import { useParams, useSearch, useNavigate } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import { 
-  ArrowLeft, Star, Play, Plus, ThumbsUp, Minus, Heart, Share2, User, AlertCircle, Clock
+  ArrowLeft, Star, Play, ThumbsUp, Minus, Heart, Share2, User, AlertCircle
 } from 'lucide-react';
 import { useKeyStore } from '../store/keyStore';
 import { createTMDBClient } from '../api/tmdb';
@@ -121,7 +121,6 @@ export const DetailPage: React.FC = () => {
     return `${mins}m / ep`;
   };
   
-  const matchScore = data.vote_average ? Math.round(data.vote_average * 10) : null;
   // @ts-ignore
   const tagline = data.tagline; // accessing untyped field that might exist
   // @ts-ignore

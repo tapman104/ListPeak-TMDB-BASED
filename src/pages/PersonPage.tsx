@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import { ArrowLeft, AlertCircle, ChevronLeft, ChevronRight, User } from 'lucide-react';
 import { useKeyStore } from '../store/keyStore';
-import { createTMDBClient, type PersonCredit, type PersonDetail } from '../api/tmdb';
+import { createTMDBClient, type PersonCredit } from '../api/tmdb';
 import { TMDB_IMAGE_BASE } from '../lib/constants';
 import { PosterCard } from '../components/PosterCard';
 
@@ -186,15 +186,15 @@ export const PersonPage: React.FC = () => {
   const tmdb = apiKey ? createTMDBClient(apiKey) : null;
 
   const { data: details, isLoading: isLoadingDetails, error: errorDetails } = useQuery({
-    queryKey: ['person', id],
+    queryKey: ['person', personId],
     queryFn: () => tmdb!.getPersonDetails(personId),
     enabled: !!tmdb && !isNaN(personId),
   });
 
-  const { data: credits, isLoading: isLoadingCredits } = useQuery({
-    queryKey: ['person-credits', id],
+  const { data: fallbackCredits, isLoading: isLoadingFallbackCredits } = useQuery({
+    queryKey: ['person-credits', personId],
     queryFn: () => tmdb!.getPersonCredits(personId),
-    enabled: !!tmdb && !isNaN(personId),
+    enabled: !!tmdb && !isNaN(personId) && !details?.combined_credits,
   });
 
   if (!apiKey) {
@@ -246,9 +246,12 @@ export const PersonPage: React.FC = () => {
   const profileUrl = details.profile_path ? `${TMDB_IMAGE_BASE}original${details.profile_path}` : '';
   const avatarUrl = details.profile_path ? `${TMDB_IMAGE_BASE}w342${details.profile_path}` : '';
   
+  const creditsSource = details.combined_credits || fallbackCredits;
+  const isCreditsLoading = !details.combined_credits && isLoadingFallbackCredits;
+
   // Prepare credits safely (combining cast and crew without duplicates)
-  const castCredits = credits?.cast || [];
-  const crewCredits = credits?.crew || [];
+  const castCredits = creditsSource?.cast || [];
+  const crewCredits = creditsSource?.crew || [];
   
   // Combine credits, deduplicating by ID and media_type
   const creditMap = new Map<string, PersonCredit>();
@@ -428,17 +431,23 @@ export const PersonPage: React.FC = () => {
         {/* Stats Bar */}
       <div className="flex items-center justify-center gap-8 md:gap-16 py-5 bg-[#0a0a10] border-y border-[rgba(255,255,255,0.04)] shadow-inner w-full px-4">
         <div className="flex flex-col items-center gap-1">
-          <span className="text-white text-2xl font-bold font-sans">{movieCount}</span>
+          <span className="text-white text-2xl font-bold font-sans">
+            {isCreditsLoading ? '—' : movieCount}
+          </span>
           <span className="text-[#5a5a72] text-[10px] uppercase tracking-[0.15em] font-semibold">Movies</span>
         </div>
         <div className="w-px h-10 bg-[rgba(255,255,255,0.08)]" />
         <div className="flex flex-col items-center gap-1">
-          <span className="text-white text-2xl font-bold font-sans">{tvCount}</span>
+          <span className="text-white text-2xl font-bold font-sans">
+            {isCreditsLoading ? '—' : tvCount}
+          </span>
           <span className="text-[#5a5a72] text-[10px] uppercase tracking-[0.15em] font-semibold">TV Shows</span>
         </div>
         <div className="w-px h-10 bg-[rgba(255,255,255,0.08)]" />
         <div className="flex flex-col items-center gap-1">
-          <span className="text-white text-2xl font-bold font-sans">{totalCount}</span>
+          <span className="text-white text-2xl font-bold font-sans">
+            {isCreditsLoading ? '—' : totalCount}
+          </span>
           <span className="text-[#5a5a72] text-[10px] uppercase tracking-[0.15em] font-semibold">Total Credits</span>
         </div>
       </div>
@@ -446,8 +455,7 @@ export const PersonPage: React.FC = () => {
       <motion.div 
         variants={containerVariants}
         initial="hidden"
-        whileInView="show"
-        viewport={{ once: true, margin: "-100px" }}
+        animate="show"
         className="w-full max-w-[1000px] mx-auto px-6 md:px-16 pt-10 pb-12 flex flex-col gap-12"
       >
         {/* Biography Section */}
@@ -489,7 +497,16 @@ export const PersonPage: React.FC = () => {
         </motion.section>
 
         {/* Filmography Sections */}
-        {!isLoadingCredits && (
+        {isCreditsLoading ? (
+          <div className="space-y-8">
+            <div className="h-4 w-32 rounded animate-shimmer bg-[#1c1c2e]" />
+            <div className="flex gap-3 overflow-hidden">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="w-[160px] aspect-[2/3] shrink-0 rounded-[var(--radius)] animate-shimmer bg-[#1c1c2e]" />
+              ))}
+            </div>
+          </div>
+        ) : (
           <>
             {rawCredits.length > 0 ? (
               <>

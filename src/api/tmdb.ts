@@ -69,6 +69,13 @@ export interface PersonDetail {
   gender: number;
   homepage: string | null;
   imdb_id: string | null;
+  combined_credits?: {
+    cast: PersonCredit[];
+    crew?: PersonCredit[];
+  };
+  images?: {
+    profiles: { file_path: string }[];
+  };
 }
 
 export interface PersonCredit {
@@ -113,7 +120,7 @@ export const createTMDBClient = (apiKey: string) => {
     getTopRatedSeries: () => fetchTMDB<TMDBResponse<TMDBMedia>>('/tv/top_rated'),
     getMediaDetails: (id: string, type: 'movie' | 'tv') => 
       fetchTMDB<TMDBDetail>(`/${type}/${id}?append_to_response=credits,videos,similar`),
-    getPersonDetails: (id: number) => fetchTMDB<PersonDetail>(`/person/${id}`),
+    getPersonDetails: (id: number) => fetchTMDB<PersonDetail>(`/person/${id}?append_to_response=combined_credits,images`),
     getPersonCredits: (id: number) => fetchTMDB<{ cast: PersonCredit[]; crew?: PersonCredit[] }>(`/person/${id}/combined_credits`),
     getPersonImages: (id: number) => fetchTMDB<{ profiles: { file_path: string }[] }>(`/person/${id}/images`),
   };
