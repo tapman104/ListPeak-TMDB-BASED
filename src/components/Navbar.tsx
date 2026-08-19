@@ -4,6 +4,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useKeyStore } from '../store/keyStore';
 import { useNavigate } from '@tanstack/react-router';
 import { motion, AnimatePresence } from 'motion/react';
+import { SearchAutocomplete } from './SearchAutocomplete';
 
 export const Navbar: React.FC = () => {
   const clearApiKey = useKeyStore((state) => state.clearApiKey);
@@ -11,7 +12,6 @@ export const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,12 +36,6 @@ export const Navbar: React.FC = () => {
     clearApiKey();
     setMobileMenuOpen(false);
     navigate({ to: '/setup' });
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-    // Keep clean search handler if needed
   };
 
   return (
@@ -94,17 +88,12 @@ export const Navbar: React.FC = () => {
           {/* Right: Actions */}
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Desktop Search Bar */}
-            <div className="hidden md:flex items-center relative">
-              <form onSubmit={handleSearchSubmit} className="relative flex items-center">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search movies, TV, actors..."
-                  className="w-48 lg:w-64 bg-[var(--color-surface)] border border-[var(--color-border-subtle)] focus:border-[var(--color-accent)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] text-xs rounded-full pl-9 pr-4 py-2 outline-none transition-all duration-200 focus:w-72"
-                />
-                <Search size={15} className="absolute left-3 text-[var(--color-text-muted)] pointer-events-none" />
-              </form>
+            <div className="hidden md:flex items-center relative w-56 lg:w-72">
+              <SearchAutocomplete
+                isInNavbar={true}
+                placeholder="Search movies, TV, actors..."
+                inputClassName="text-xs py-2 h-9"
+              />
             </div>
 
             {/* Mobile Search Toggle */}
@@ -113,7 +102,7 @@ export const Navbar: React.FC = () => {
                 setSearchOpen(!searchOpen);
                 if (mobileMenuOpen) setMobileMenuOpen(false);
               }}
-              className="md:hidden flex items-center justify-center w-11 h-11 text-[var(--color-text-muted)] hover:text-white transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] rounded-full"
+              className="md:hidden flex items-center justify-center w-11 h-11 text-[var(--color-text-muted)] hover:text-white transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] rounded-full cursor-pointer"
               aria-label="Toggle Search"
             >
               {searchOpen ? <X size={20} /> : <Search size={20} />}
@@ -173,7 +162,7 @@ export const Navbar: React.FC = () => {
                 setMobileMenuOpen(!mobileMenuOpen);
                 if (searchOpen) setSearchOpen(false);
               }}
-              className="md:hidden flex items-center justify-center w-11 h-11 text-[var(--color-text-primary)] hover:text-white transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] rounded-lg"
+              className="md:hidden flex items-center justify-center w-11 h-11 text-[var(--color-text-primary)] hover:text-white transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] rounded-lg cursor-pointer"
               aria-label="Toggle Navigation Menu"
             >
               {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -189,19 +178,17 @@ export const Navbar: React.FC = () => {
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="md:hidden overflow-hidden pb-4"
+              className="md:hidden overflow-visible pb-4 pt-1"
             >
-              <form onSubmit={handleSearchSubmit} className="relative flex items-center w-full">
-                <input
-                  type="text"
-                  autoFocus
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search movies, shows, people..."
-                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] focus:border-[var(--color-accent)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] text-sm rounded-xl pl-10 pr-4 py-3 outline-none"
-                />
-                <Search size={18} className="absolute left-3.5 text-[var(--color-text-muted)] pointer-events-none" />
-              </form>
+              <SearchAutocomplete
+                autoFocus={true}
+                isInNavbar={true}
+                placeholder="Search movies, shows, people..."
+                inputClassName="text-sm py-2.5 rounded-xl"
+                onSearchSubmit={() => {
+                  setSearchOpen(false);
+                }}
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -238,6 +225,17 @@ export const Navbar: React.FC = () => {
                 >
                   <Home size={18} className="text-[var(--color-accent)]" />
                   Home
+                </button>
+
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    navigate({ to: '/search' });
+                  }}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--color-text-primary)] hover:bg-[var(--color-card)] active:bg-[var(--color-accent-dim)] transition-colors text-base font-sans font-medium text-left min-h-[48px]"
+                >
+                  <Search size={18} className="text-[var(--color-accent)]" />
+                  Search
                 </button>
 
                 <button

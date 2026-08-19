@@ -11,9 +11,10 @@ interface PosterCardProps {
   rank?: number;
   mediaType?: 'movie' | 'tv';
   voteAverage?: number;
+  className?: string;
 }
 
-export const PosterCard: React.FC<PosterCardProps> = ({ id, title, posterPath, rank, mediaType = 'movie', voteAverage }) => {
+export const PosterCard: React.FC<PosterCardProps> = ({ id, title, posterPath, rank, mediaType = 'movie', voteAverage, className }) => {
   const navigate = useNavigate();
   const imageUrl = posterPath ? `${TMDB_IMAGE_BASE}${TMDB_POSTER_SIZE}${posterPath}` : null;
 
@@ -25,13 +26,15 @@ export const PosterCard: React.FC<PosterCardProps> = ({ id, title, posterPath, r
     });
   };
 
+  const containerClasses = className || "w-[130px] min-[375px]:w-[140px] min-[425px]:w-[150px] sm:w-[165px] md:w-[180px] shrink-0";
+
   return (
     <motion.div
       onClick={handleClick}
       whileHover={{ scale: 1.04, y: -4 }}
       whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
-      className="relative w-[130px] min-[375px]:w-[140px] min-[425px]:w-[150px] sm:w-[165px] md:w-[180px] shrink-0 aspect-[2/3] rounded-[var(--radius)] overflow-hidden cursor-pointer group bg-[var(--color-card)] snap-start select-none shadow-md"
+      className={`relative aspect-[2/3] rounded-[var(--radius)] overflow-hidden cursor-pointer group bg-[var(--color-card)] snap-start select-none shadow-md ${containerClasses}`}
     >
       {/* Poster Image */}
       {imageUrl ? (

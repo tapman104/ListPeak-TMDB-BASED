@@ -94,6 +94,23 @@ export interface PersonCredit {
   first_air_date?: string;
 }
 
+export interface TMDBPerson {
+  id: number;
+  name: string;
+  profile_path: string | null;
+  media_type?: 'person';
+  known_for_department?: string;
+  known_for?: (TMDBMedia & { media_type?: 'movie' | 'tv' })[];
+  popularity: number;
+}
+
+export interface TMDBGenre {
+  id: number;
+  name: string;
+}
+
+export type SearchResultItem = (TMDBMedia & { media_type?: 'movie' | 'tv' }) | (TMDBPerson & { media_type: 'person' });
+
 export const createTMDBClient = (apiKey: string) => {
   const fetchTMDB = async <T>(endpoint: string): Promise<T> => {
     const separator = endpoint.includes('?') ? '&' : '?';
@@ -123,5 +140,29 @@ export const createTMDBClient = (apiKey: string) => {
     getPersonDetails: (id: number) => fetchTMDB<PersonDetail>(`/person/${id}?append_to_response=combined_credits,images`),
     getPersonCredits: (id: number) => fetchTMDB<{ cast: PersonCredit[]; crew?: PersonCredit[] }>(`/person/${id}/combined_credits`),
     getPersonImages: (id: number) => fetchTMDB<{ profiles: { file_path: string }[] }>(`/person/${id}/images`),
+    getMovieGenres: () => fetchTMDB<{ genres: TMDBGenre[] }>('/genre/movie/list'),
+    getTVGenres: () => fetchTMDB<{ genres: TMDBGenre[] }>('/genre/tv/list'),
+    searchMulti: (query: string, page = 1) => 
+      fetchTMDB<TMDBResponse<SearchResultItem>>(`/search/multi?query=${encodeURIComponent(query)}&page=${page}`),
+    searchMovies: (query: string, page = 1, options?: { primary_release_year?: string | number; year?: string | number }) => {
+      let url = `/search/movie?query=${encodeURIComponent(query)}&page=${page}`;
+      if (options?.primary_release_year) {
+        url += `&primary_release_year=${options.primary_release_year}`;
+      } else if (options?.year) {
+        url += `&year=${options.year}`;
+      }
+      return fetchTMDB<TMDBResponse<TMDBMedia>>(url);
+    },
+    searchTV: (query: string, page = 1, options?: { first_air_date_year?: string | number; year?: string | number }) => {
+      let url = `/search/tv?query=${encodeURIComponent(query)}&page=${page}`;
+      if (options?.first_air_date_year) {
+        url += `&first_air_date_year=${options.first_air_date_year}`;
+      } else if (options?.year) {
+        url += `&year=${options.year}`;
+      }
+      return fetchTMDB<TMDBResponse<TMDBMedia>>(url);
+    },
+    searchPeople: (query: string, page = 1) => 
+      fetchTMDB<TMDBResponse<TMDBPerson>>(`/search/person?query=${encodeURIComponent(query)}&page=${page}`),
   };
 };
