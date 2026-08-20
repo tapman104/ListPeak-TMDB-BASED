@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import { 
   ArrowLeft, Star, Play, ThumbsUp, Minus, Heart, Share2, User, AlertCircle,
-  ChevronDown, ChevronUp, Calendar, Clock
+  ChevronDown, ChevronUp, Calendar, Clock, Home, Search as SearchIcon
 } from 'lucide-react';
 import { useKeyStore } from '../store/keyStore';
 import { createTMDBClient } from '../api/tmdb';
@@ -287,15 +287,33 @@ export const DetailPage: React.FC = () => {
   
   return (
     <div className="min-h-screen bg-[#07070d] pb-20 overflow-x-hidden">
-      {/* Back Button */}
-      <button 
-        onClick={() => window.history.length > 1 ? window.history.back() : navigate({ to: '/' })}
-        className="fixed top-4 left-4 sm:top-6 sm:left-6 z-50 flex items-center justify-center w-11 h-11 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 hover:border-white/40 transition-all duration-200 cursor-pointer shadow-lg"
-        title="Back"
-        aria-label="Go Back"
-      >
-        <ArrowLeft size={18} />
-      </button>
+      {/* Top Left Navigation Buttons */}
+      <div className="fixed top-4 left-4 sm:top-6 sm:left-6 z-50 flex items-center gap-3">
+        <button 
+          onClick={() => window.history.length > 1 ? window.history.back() : navigate({ to: '/' })}
+          className="flex items-center justify-center w-11 h-11 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 hover:border-white/40 transition-all duration-200 cursor-pointer shadow-lg"
+          title="Back"
+          aria-label="Go Back"
+        >
+          <ArrowLeft size={18} />
+        </button>
+        <button 
+          onClick={() => navigate({ to: '/' })}
+          className="flex items-center justify-center w-11 h-11 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 hover:border-white/40 transition-all duration-200 cursor-pointer shadow-lg"
+          title="Home"
+          aria-label="Go Home"
+        >
+          <Home size={18} />
+        </button>
+        <button 
+          onClick={() => navigate({ to: '/search' })}
+          className="flex items-center justify-center w-11 h-11 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 hover:border-white/40 transition-all duration-200 cursor-pointer shadow-lg"
+          title="Search"
+          aria-label="Search"
+        >
+          <SearchIcon size={18} />
+        </button>
+      </div>
 
       {/* Backdrop Section */}
       <div className="relative min-h-[580px] sm:min-h-[660px] md:min-h-[85vh] w-full bg-black overflow-hidden flex items-end justify-center pb-8 sm:pb-12 md:pb-16 pt-20 sm:pt-24">
