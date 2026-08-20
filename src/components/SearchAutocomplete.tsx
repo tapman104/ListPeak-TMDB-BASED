@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, X, History, Film, Tv, User, Loader2, ArrowRight, Trash2 } from 'lucide-react';
+import { Search, X, History, Film, Tv, User, Loader2, ArrowRight, Trash2, SlidersHorizontal } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { useKeyStore } from '../store/keyStore';
 import { createTMDBClient, type SearchResultItem } from '../api/tmdb';
@@ -220,18 +220,37 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
           className={`w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] focus:border-[var(--color-accent)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] text-sm rounded-full pl-10 pr-10 py-2.5 outline-none transition-all duration-200 shadow-inner ${inputClassName}`}
         />
 
-        {/* Clear (X) button / Spinner */}
-        <div className="absolute right-3 flex items-center gap-1">
-          {isLoading && <Loader2 size={16} className="text-[var(--color-accent)] animate-spin" />}
+        {/* Clear (X) button / Spinner / Advanced Search */}
+        <div className="absolute right-3 flex items-center gap-1.5">
+          {isLoading && <Loader2 size={14} className="text-[var(--color-accent)] animate-spin" />}
+          
           {!isLoading && showClearButton && query.length > 0 && (
             <button
               type="button"
               onClick={handleClear}
-              className="p-1 rounded-full text-[var(--color-text-muted)] hover:text-white hover:bg-[var(--color-card)] transition-colors cursor-pointer"
+              className="p-1 rounded-full text-[var(--color-text-muted)] hover:text-white hover:bg-[var(--color-card)] transition-colors cursor-pointer flex items-center justify-center"
               aria-label="Clear search input"
             >
-              <X size={15} />
+              <X size={14} />
             </button>
+          )}
+
+          {isInNavbar && (
+            <>
+              {query.length > 0 && <div className="w-px h-3.5 bg-[var(--color-border-subtle)] mx-0.5" />}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate({ to: '/search', search: query ? { q: query } : undefined });
+                }}
+                className="p-1 rounded-full text-[var(--color-text-muted)] hover:text-[var(--color-accent)] hover:bg-[var(--color-card)] transition-colors cursor-pointer flex items-center justify-center"
+                title="Advanced Search with Filters"
+                aria-label="Advanced Search"
+              >
+                <SlidersHorizontal size={14} />
+              </button>
+            </>
           )}
         </div>
       </div>

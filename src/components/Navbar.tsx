@@ -82,6 +82,13 @@ export const Navbar: React.FC = () => {
               >
                 Trending
               </button>
+              <button 
+                onClick={() => navigate({ to: '/search' })}
+                className="hover:text-[var(--color-text-primary)] transition-colors py-2 flex items-center gap-1.5"
+              >
+                <Search size={14} className="opacity-70" />
+                Advanced Search
+              </button>
             </div>
           </div>
 

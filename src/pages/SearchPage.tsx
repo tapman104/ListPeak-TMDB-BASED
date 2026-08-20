@@ -46,7 +46,9 @@ export const SearchPage: React.FC = () => {
   const [minRating, setMinRating] = useState<number>(0);
   const [minYear, setMinYear] = useState<string>('');
   const [maxYear, setMaxYear] = useState<string>('');
-  const [filterPanelOpen, setFilterPanelOpen] = useState<boolean>(false);
+  const [filterPanelOpen, setFilterPanelOpen] = useState<boolean>(
+    typeof window !== 'undefined' ? window.innerWidth >= 768 : false
+  );
 
   // Sync route query change
   if (prevRouteQuery !== routeQuery) {
