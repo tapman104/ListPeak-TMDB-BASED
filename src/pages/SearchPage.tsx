@@ -216,7 +216,7 @@ export const SearchPage: React.FC = () => {
     <div className="min-h-screen bg-[var(--color-background)] flex flex-col justify-between text-[var(--color-text-primary)]">
       {/* Sticky Top Bar */}
       <header className="sticky top-0 left-0 right-0 z-40 bg-[rgba(7,7,13,0.95)] backdrop-blur-xl border-b border-[var(--color-border-subtle)]">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-8 py-3.5 flex items-center gap-3 sm:gap-4">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 py-3.5 flex items-center gap-3 sm:gap-4">
           {/* Back button (>= 44px touch target) */}
           <button
             type="button"
@@ -243,7 +243,7 @@ export const SearchPage: React.FC = () => {
       </header>
 
       {/* Main Results Container */}
-      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-8 py-6">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 md:px-8 py-6">
         {/* Results Header / Stats */}
         {searchQuery.trim().length > 0 && (
           <div className="flex items-center justify-between mb-6">

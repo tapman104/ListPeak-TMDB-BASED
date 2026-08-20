@@ -390,7 +390,7 @@ export const DetailPage: React.FC = () => {
             {/* Title */}
             <motion.h1 
               variants={itemVariants}
-              className="font-[Georgia,'Times_New_Roman',serif] font-bold text-white leading-tight"
+              className="font-[Georgia,'Times_New_Roman',serif] font-bold text-white leading-tight break-words whitespace-normal max-w-full"
               style={{ fontSize: 'clamp(1.6rem, 4vw, 3rem)' }}
             >
               {title}
@@ -452,14 +452,14 @@ export const DetailPage: React.FC = () => {
               {trailer && (
                 <button 
                   onClick={() => window.open(`https://youtube.com/watch?v=${trailer.key}`, '_blank')}
-                  className="min-h-[44px] px-5 sm:px-6 rounded-full text-black bg-white font-sans font-bold text-xs sm:text-sm flex items-center justify-center gap-2 hover:bg-white/90 active:scale-[0.98] transition-all cursor-pointer shadow-md"
+                  className="w-full sm:w-auto flex-1 sm:flex-none min-h-[44px] px-5 sm:px-6 rounded-full text-black bg-white font-sans font-bold text-xs sm:text-sm flex items-center justify-center gap-2 hover:bg-white/90 active:scale-[0.98] transition-all cursor-pointer shadow-md"
                 >
                   <Play size={16} fill="currentColor" stroke="none" />
                   Watch Trailer
                 </button>
               )}
               <button 
-                className="min-h-[44px] px-5 sm:px-6 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white font-sans font-bold text-xs sm:text-sm flex items-center justify-center gap-2 hover:bg-white/10 active:scale-[0.98] transition-all cursor-pointer"
+                className="w-full sm:w-auto flex-1 sm:flex-none min-h-[44px] px-5 sm:px-6 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white font-sans font-bold text-xs sm:text-sm flex items-center justify-center gap-2 hover:bg-white/10 active:scale-[0.98] transition-all cursor-pointer"
               >
                 <Heart size={16} />
                 My List
@@ -519,10 +519,10 @@ export const DetailPage: React.FC = () => {
         initial="hidden"
         whileInView="show"
         viewport={{ once: true, margin: "-80px" }}
-        className="w-full max-w-[1000px] mx-auto px-4 sm:px-8 md:px-12 pt-6 md:pt-10 pb-12 flex flex-col gap-8 sm:gap-10"
+        className="w-full max-w-[1000px] mx-auto px-4 sm:px-6 md:px-8 pt-6 md:pt-10 pb-12 flex flex-col gap-8 sm:gap-10"
       >
         
-        <div className="flex gap-1 border-b border-[rgba(255,255,255,0.07)] mb-8 overflow-x-auto no-scrollbar">
+        <div className="flex flex-nowrap gap-1 border-b border-[rgba(255,255,255,0.07)] mb-8 overflow-x-auto no-scrollbar">
           {(type === 'tv' && seasons && seasons.length > 0
             ? ['overview', 'seasons', 'cast'] as const
             : ['overview', 'cast'] as const
@@ -689,7 +689,7 @@ export const DetailPage: React.FC = () => {
           <h2 className="font-sans font-medium text-xs uppercase tracking-[0.15em] font-semibold text-white/60 mb-4">
             DETAILS
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4 max-w-[720px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4 max-w-[720px]">
           
             {/* Title */}
             <div className="flex flex-col">
@@ -856,7 +856,7 @@ export const DetailPage: React.FC = () => {
               {previewEpisodes.map((ep: any) => (
                 <div
                   key={ep.id}
-                  className="shrink-0 w-[260px] sm:w-[280px] snap-start flex flex-col gap-2 group"
+                  className="shrink-0 w-[85vw] max-w-[260px] sm:max-w-none sm:w-[280px] snap-start flex flex-col gap-2 group"
                 >
                   {/* Thumbnail with runtime badge overlay */}
                   <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-[#0e0e1a]">
@@ -1155,7 +1155,7 @@ export const DetailPage: React.FC = () => {
             <h2 className="font-sans font-medium text-xs uppercase tracking-[0.15em] font-semibold text-white/60 mb-4">
               YOU MAY ALSO LIKE
             </h2>
-            <div className="flex overflow-x-auto gap-2.5 sm:gap-3.5 pb-3 no-scrollbar snap-x snap-mandatory">
+            <div className="flex md:grid overflow-x-auto md:overflow-visible gap-3 md:grid-cols-4 lg:grid-cols-5 pb-3 snap-x md:snap-none no-scrollbar">
               {data.similar.results.slice(0, 12).map((item) => {
                 const simImageUrl = item.poster_path ? `${TMDB_IMAGE_BASE}w342${item.poster_path}` : null;
                 const simTitle = item.title || item.name;
@@ -1168,7 +1168,7 @@ export const DetailPage: React.FC = () => {
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
                     transition={{ duration: 0.18 }}
-                    className="relative w-[130px] min-[375px]:w-[140px] sm:w-[160px] md:w-[180px] shrink-0 aspect-[2/3] rounded-[var(--radius)] overflow-hidden cursor-pointer group bg-[#141420] snap-start select-none shadow-md"
+                    className="relative w-[130px] sm:w-[160px] md:w-full shrink-0 md:shrink aspect-[2/3] rounded-[var(--radius)] overflow-hidden cursor-pointer group bg-[#141420] snap-start md:snap-none select-none shadow-md"
                   >
                     {simImageUrl ? (
                       <img 
@@ -1217,26 +1217,27 @@ export const DetailPage: React.FC = () => {
 
       {/* Search Overlay */}
       {isSearchOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col p-4 sm:p-8 animate-in fade-in duration-200">
-          <div className="w-full max-w-4xl mx-auto flex items-center gap-4 mb-8 shrink-0 mt-4">
-            <SearchIcon size={28} className="text-white/60 shrink-0" />
-            <input 
-              autoFocus
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 bg-transparent border-none outline-none text-2xl sm:text-3xl text-white font-sans font-medium placeholder-white/40"
-            />
-            <button 
-              onClick={() => setIsSearchOpen(false)}
-              className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors text-white shrink-0 cursor-pointer"
-            >
-              <X size={24} />
-            </button>
-          </div>
-          
-          <div className="w-full max-w-4xl mx-auto flex-1 overflow-y-auto no-scrollbar pb-20">
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col md:items-center md:justify-center p-0 md:p-8 animate-in fade-in duration-200">
+          <div className="w-full h-full md:h-[85vh] max-w-4xl bg-transparent md:bg-[#07070d] md:border md:border-white/10 md:rounded-2xl flex flex-col p-4 sm:p-6 md:p-8 md:shadow-2xl relative overflow-hidden">
+            <div className="w-full mx-auto flex items-center gap-4 mb-8 shrink-0 mt-4 md:mt-0">
+              <SearchIcon size={28} className="text-white/60 shrink-0" />
+              <input 
+                autoFocus
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent border-none outline-none text-2xl sm:text-3xl text-white font-sans font-medium placeholder-white/40"
+              />
+              <button 
+                onClick={() => setIsSearchOpen(false)}
+                className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors text-white shrink-0 cursor-pointer"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="w-full mx-auto flex-1 overflow-y-auto no-scrollbar pb-20 md:pb-0">
             {searchLoading && debouncedSearchQuery.length > 1 && (
               <div className="text-white/60 text-center mt-12 font-sans text-lg">Searching...</div>
             )}
@@ -1268,6 +1269,7 @@ export const DetailPage: React.FC = () => {
               <div className="text-white/60 text-center mt-12 font-sans text-lg">No results found for "{debouncedSearchQuery}"</div>
             )}
           </div>
+        </div>
         </div>
       )}
 

@@ -60,7 +60,7 @@ export default function CastPage() {
 
   return (
     <div className="min-h-screen bg-[var(--color-bg,#07070f)] text-[#eeeef5]">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pt-16 sm:pt-20">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-8 py-6 pt-16 sm:pt-20">
 
         {/* Back button */}
         <button

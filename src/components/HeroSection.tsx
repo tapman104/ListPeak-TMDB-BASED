@@ -98,7 +98,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ item, isLoading }) => 
           {/* Title */}
           <motion.h1 
             variants={itemVariants}
-            className="font-display font-bold text-white leading-[0.92] tracking-tight"
+            className="font-display font-bold text-white leading-[0.92] tracking-tight break-words whitespace-normal max-w-full"
             style={{ fontSize: 'clamp(2.2rem, 5.5vw, 5.2rem)' }}
           >
             <span className="line-clamp-2">{title}</span>

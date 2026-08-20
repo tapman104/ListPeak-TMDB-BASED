@@ -375,7 +375,7 @@ export const PersonPage: React.FC = () => {
             >
               <motion.h1 
                 variants={itemVariants}
-                className="font-[Georgia,'Times_New_Roman',serif] font-bold text-white leading-tight"
+                className="font-[Georgia,'Times_New_Roman',serif] font-bold text-white leading-tight break-words whitespace-normal max-w-full"
                 style={{ fontSize: 'clamp(1.8rem, 4vw, 3.2rem)' }}
               >
                 {details.name}
@@ -459,7 +459,7 @@ export const PersonPage: React.FC = () => {
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          className="w-full max-w-[1000px] mx-auto px-4 sm:px-8 md:px-12 pt-8 sm:pt-10 pb-12 flex flex-col gap-8 sm:gap-12"
+          className="w-full max-w-[1000px] mx-auto px-4 sm:px-6 md:px-8 pt-8 sm:pt-10 pb-12 flex flex-col gap-8 sm:gap-12"
         >
           {/* Biography Section */}
           <motion.section variants={itemVariants} className="bg-black max-w-3xl">
