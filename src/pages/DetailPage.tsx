@@ -3,7 +3,8 @@ import { useParams, useSearch, useNavigate } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import { 
-  ArrowLeft, Star, Play, ThumbsUp, Minus, Heart, Share2, User, AlertCircle
+  ArrowLeft, Star, Play, ThumbsUp, Minus, Heart, Share2, User, AlertCircle,
+  ChevronDown, ChevronUp, Calendar, Clock
 } from 'lucide-react';
 import { useKeyStore } from '../store/keyStore';
 import { createTMDBClient } from '../api/tmdb';
@@ -34,6 +35,7 @@ export const DetailPage: React.FC = () => {
   const apiKey = useKeyStore((state) => state.apiKey);
   
   const [showCopied, setShowCopied] = useState(false);
+  const [openSeason, setOpenSeason] = useState<number | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -45,6 +47,12 @@ export const DetailPage: React.FC = () => {
     queryKey: ['detail', type, id],
     queryFn: () => tmdb!.getMediaDetails(id, type),
     enabled: !!apiKey && !!id && !!tmdb,
+  });
+
+  const { data: seasonData, isLoading: seasonLoading } = useQuery({
+    queryKey: ['season', id, openSeason],
+    queryFn: () => tmdb!.getTVSeason(id, openSeason!),
+    enabled: !!apiKey && !!tmdb && type === 'tv' && openSeason !== null,
   });
 
   const handleShare = () => {
@@ -130,6 +138,12 @@ export const DetailPage: React.FC = () => {
 
   const director = type === 'movie' ? data.credits?.crew?.find(c => c.job === 'Director') : null;
   const trailer = data.videos?.results?.find(v => v.type === 'Trailer' && v.site === 'YouTube');
+  
+  const contentRating = type === 'tv'
+    ? (data as any).content_ratings?.results?.find(
+        (r: any) => r.iso_3166_1 === 'US'
+      )?.rating ?? null
+    : null;
   
   return (
     <div className="min-h-screen bg-[#07070d] pb-20 overflow-x-hidden">
@@ -240,6 +254,15 @@ export const DetailPage: React.FC = () => {
                 <span className="text-white/80">
                   {data.genres.map((g: any) => g.name).join(' · ')}
                 </span>
+              )}
+
+              {contentRating && (
+                <>
+                  <span>·</span>
+                  <span className="font-sans text-[10px] font-bold border border-white/30 rounded px-1.5 py-0.5 text-white/70 tracking-wider">
+                    {contentRating}
+                  </span>
+                </>
               )}
             </motion.div>
 
@@ -417,6 +440,119 @@ export const DetailPage: React.FC = () => {
           </div>
           <div className="border-t border-[rgba(255,255,255,0.06)] mt-8 sm:mt-10 w-full" />
         </motion.section>
+
+        {/* SEASONS & EPISODES — TV only */}
+        {type === 'tv' && numSeasons > 0 && (
+          <motion.section variants={itemVariants}>
+            <h2 className="font-sans font-medium text-[11px] uppercase tracking-[0.14em] text-[#5a5a72] mb-4">
+              SEASONS & EPISODES
+            </h2>
+            <div className="flex flex-col gap-2">
+              {Array.from({ length: numSeasons }, (_, i) => i + 1).map((seasonNum) => {
+                const isOpen = openSeason === seasonNum;
+                return (
+                  <div key={seasonNum} className="rounded-xl border border-[rgba(255,255,255,0.07)] overflow-hidden bg-[#0e0e1a]">
+                    {/* Season Header — clickable */}
+                    <button
+                      onClick={() => setOpenSeason(isOpen ? null : seasonNum)}
+                      className="w-full flex items-center justify-between px-4 sm:px-5 py-3.5 text-left cursor-pointer hover:bg-[rgba(255,255,255,0.04)] transition-colors"
+                    >
+                      <span className="font-sans font-semibold text-sm text-[#eeeef5]">
+                        Season {seasonNum}
+                      </span>
+                      {isOpen ? (
+                        <ChevronUp size={16} className="text-[#5a5a72] shrink-0" />
+                      ) : (
+                        <ChevronDown size={16} className="text-[#5a5a72] shrink-0" />
+                      )}
+                    </button>
+
+                    {/* Episode List */}
+                    {isOpen && (
+                      <div className="border-t border-[rgba(255,255,255,0.06)]">
+                        {seasonLoading ? (
+                          <div className="flex flex-col gap-0">
+                            {Array.from({ length: 4 }).map((_, i) => (
+                              <div key={i} className="flex gap-3 px-4 sm:px-5 py-3 border-b border-[rgba(255,255,255,0.04)] last:border-0">
+                                <div className="w-28 sm:w-36 aspect-video rounded-lg bg-[#1c1c2e] animate-shimmer shrink-0" />
+                                <div className="flex-1 flex flex-col gap-2 justify-center">
+                                  <div className="h-3.5 w-2/3 rounded bg-[#1c1c2e] animate-shimmer" />
+                                  <div className="h-3 w-full rounded bg-[#1c1c2e] animate-shimmer" />
+                                  <div className="h-3 w-4/5 rounded bg-[#1c1c2e] animate-shimmer" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : seasonData?.episodes?.length ? (
+                          <div className="flex flex-col">
+                            {seasonData.episodes.map((ep) => (
+                              <div
+                                key={ep.id}
+                                className="flex gap-3 sm:gap-4 px-4 sm:px-5 py-3 sm:py-3.5 border-b border-[rgba(255,255,255,0.04)] last:border-0 hover:bg-[rgba(255,255,255,0.02)] transition-colors"
+                              >
+                                {/* Still thumbnail */}
+                                <div className="w-28 sm:w-36 aspect-video rounded-lg overflow-hidden bg-[#141420] shrink-0">
+                                  {ep.still_path ? (
+                                    <img
+                                      src={`${TMDB_IMAGE_BASE}w300${ep.still_path}`}
+                                      alt={ep.name}
+                                      loading="lazy"
+                                      className="w-full h-full object-cover block"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-[#5a5a72]">
+                                      <Play size={18} />
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Episode info */}
+                                <div className="flex flex-col gap-1 min-w-0 flex-1 justify-center">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-sans font-semibold text-xs sm:text-sm text-[#eeeef5] truncate">
+                                      {ep.episode_number}. {ep.name}
+                                    </span>
+                                    {ep.vote_average > 0 && (
+                                      <span className="font-sans text-[10px] text-[#4ade80] font-semibold shrink-0">
+                                        ★ {ep.vote_average.toFixed(1)}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-3 text-[10px] sm:text-[11px] text-[#5a5a72] font-sans flex-wrap">
+                                    {ep.air_date && (
+                                      <span className="flex items-center gap-1">
+                                        <Calendar size={10} />
+                                        {ep.air_date}
+                                      </span>
+                                    )}
+                                    {ep.runtime && (
+                                      <span className="flex items-center gap-1">
+                                        <Clock size={10} />
+                                        {ep.runtime}m
+                                      </span>
+                                    )}
+                                  </div>
+                                  {ep.overview && (
+                                    <p className="font-sans text-[11px] sm:text-xs text-[#9898b0] leading-relaxed line-clamp-2 mt-0.5">
+                                      {ep.overview}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="px-5 py-4 text-xs text-[#5a5a72] font-sans">No episode data available.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="border-t border-[rgba(255,255,255,0.06)] mt-8 sm:mt-10 w-full" />
+          </motion.section>
+        )}
 
         {/* YOU MAY ALSO LIKE SECTION */}
         {data.similar?.results && data.similar.results.length > 0 && (

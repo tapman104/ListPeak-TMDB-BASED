@@ -53,6 +53,32 @@ export interface TMDBDetail {
   similar: {
     results: TMDBMedia[];
   };
+  content_ratings?: {
+    results: { iso_3166_1: string; rating: string }[];
+  };
+}
+
+export interface TMDBSeason {
+  id: number;
+  name: string;
+  season_number: number;
+  episode_count: number;
+  air_date: string | null;
+  overview: string;
+  poster_path: string | null;
+  episodes: TMDBEpisode[];
+}
+
+export interface TMDBEpisode {
+  id: number;
+  name: string;
+  episode_number: number;
+  season_number: number;
+  air_date: string | null;
+  overview: string;
+  still_path: string | null;
+  vote_average: number;
+  runtime: number | null;
 }
 
 export interface PersonDetail {
@@ -136,7 +162,11 @@ export const createTMDBClient = (apiKey: string) => {
     getPopularMovies: () => fetchTMDB<TMDBResponse<TMDBMedia>>('/movie/popular'),
     getTopRatedSeries: () => fetchTMDB<TMDBResponse<TMDBMedia>>('/tv/top_rated'),
     getMediaDetails: (id: string, type: 'movie' | 'tv') => 
-      fetchTMDB<TMDBDetail>(`/${type}/${id}?append_to_response=credits,videos,similar`),
+      fetchTMDB<TMDBDetail>(
+        `/${type}/${id}?append_to_response=credits,videos,similar${type === 'tv' ? ',content_ratings' : ''}`
+      ),
+    getTVSeason: (id: string, seasonNumber: number) =>
+      fetchTMDB<TMDBSeason>(`/tv/${id}/season/${seasonNumber}`),
     getPersonDetails: (id: number) => fetchTMDB<PersonDetail>(`/person/${id}?append_to_response=combined_credits,images`),
     getPersonCredits: (id: number) => fetchTMDB<{ cast: PersonCredit[]; crew?: PersonCredit[] }>(`/person/${id}/combined_credits`),
     getPersonImages: (id: number) => fetchTMDB<{ profiles: { file_path: string }[] }>(`/person/${id}/images`),
