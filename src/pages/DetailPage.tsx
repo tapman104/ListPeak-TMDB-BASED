@@ -145,6 +145,43 @@ export const DetailPage: React.FC = () => {
       )?.rating ?? null
     : null;
   
+  // Watch providers — prefer IN (India) then US fallback
+  const watchProviders = (() => {
+    const providerData = (data as any)['watch/providers']?.results;
+    if (!providerData) return null;
+    const region = providerData['IN'] || providerData['US'] || Object.values(providerData)[0] as any;
+    return region?.flatrate || region?.rent || region?.buy || null;
+  })();
+
+  // Keywords/tags
+  const keywords: { id: number; name: string }[] = 
+    (data as any).keywords?.results ?? [];
+
+  // MPAA rating for movies
+  const mpaaRating = type === 'movie'
+    ? (data as any).release_dates?.results
+        ?.find((r: any) => r.iso_3166_1 === 'US')
+        ?.release_dates?.find((d: any) => d.certification)
+        ?.certification ?? null
+    : null;
+
+  // Networks (TV)
+  const networks: { id: number; name: string; logo_path: string | null }[] =
+    (data as any).networks ?? [];
+
+  // Next episode
+  const nextEp = type === 'tv' ? (data as any).next_episode_to_air ?? null : null;
+
+  // Collection (movies)
+  const collection = type === 'movie' ? (data as any).belongs_to_collection ?? null : null;
+
+  // Spoken language full name
+  const spokenLang = (data as any).spoken_languages?.[0]?.english_name ?? data.original_language?.toUpperCase();
+
+  // Production companies (first 3)
+  const studios: { id: number; name: string; logo_path: string | null }[] =
+    ((data as any).production_companies ?? []).slice(0, 3);
+  
   return (
     <div className="min-h-screen bg-[#07070d] pb-20 overflow-x-hidden">
       {/* Back Button */}
@@ -256,11 +293,11 @@ export const DetailPage: React.FC = () => {
                 </span>
               )}
 
-              {contentRating && (
+              {(contentRating || mpaaRating) && (
                 <>
                   <span>·</span>
                   <span className="font-sans text-[10px] font-bold border border-white/30 rounded px-1.5 py-0.5 text-white/70 tracking-wider">
-                    {contentRating}
+                    {contentRating || mpaaRating}
                   </span>
                 </>
               )}
@@ -312,6 +349,22 @@ export const DetailPage: React.FC = () => {
               </div>
             </motion.div>
 
+            {/* Watch Providers */}
+            {watchProviders && watchProviders.length > 0 && (
+              <motion.div variants={itemVariants} className="flex items-center gap-2 flex-wrap justify-center md:justify-start mt-1">
+                <span className="font-sans text-[10px] text-[#5a5a72] uppercase tracking-wider">Stream on</span>
+                {watchProviders.slice(0, 5).map((p: any) => (
+                  <img
+                    key={p.provider_id}
+                    src={`https://image.tmdb.org/t/p/w45${p.logo_path}`}
+                    alt={p.provider_name}
+                    title={p.provider_name}
+                    className="w-7 h-7 rounded-lg object-cover border border-white/10"
+                  />
+                ))}
+              </motion.div>
+            )}
+
           </motion.div>
         </div>
       </div>
@@ -335,6 +388,33 @@ export const DetailPage: React.FC = () => {
               {data.overview}
             </p>
             <div className="border-t border-[rgba(255,255,255,0.06)] mt-8 sm:mt-10 w-full" />
+          </motion.section>
+        )}
+
+        {/* Next Episode Banner — TV ongoing only */}
+        {nextEp && (
+          <motion.section variants={itemVariants}>
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#0e1a14] border border-[#4ade80]/20">
+              <div className="w-2 h-2 rounded-full bg-[#4ade80] shrink-0 animate-pulse" />
+              <div className="flex flex-col">
+                <span className="font-sans font-semibold text-xs text-[#4ade80] uppercase tracking-wider">Next Episode</span>
+                <span className="font-sans text-xs text-[#e2e2e2] mt-0.5">
+                  S{nextEp.season_number}E{nextEp.episode_number} · {nextEp.name} · {nextEp.air_date}
+                </span>
+              </div>
+            </div>
+          </motion.section>
+        )}
+
+        {/* Belongs to Collection — movies */}
+        {collection && (
+          <motion.section variants={itemVariants}>
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#12121e] border border-white/08">
+              <div className="flex flex-col">
+                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72]">Part of</span>
+                <span className="font-sans font-semibold text-sm text-[#eeeef5] mt-0.5">{collection.name}</span>
+              </div>
+            </div>
           </motion.section>
         )}
 
@@ -398,13 +478,19 @@ export const DetailPage: React.FC = () => {
             {createdBy && createdBy.length > 0 && (
               <div className="flex flex-col">
                 <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">CREATOR</span>
-                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{createdBy[0].name}</span>
+                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{createdBy.map((c: any) => c.name).join(', ')}</span>
               </div>
             )}
-            {data.original_language && (
+            {spokenLang && (
               <div className="flex flex-col">
                 <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">LANGUAGE</span>
-                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5] uppercase">{data.original_language}</span>
+                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{spokenLang}</span>
+              </div>
+            )}
+            {networks.length > 0 && (
+              <div className="flex flex-col">
+                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">NETWORK</span>
+                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{networks.map(n => n.name).join(', ')}</span>
               </div>
             )}
             {data.budget !== undefined && data.budget > 0 && (
@@ -431,6 +517,12 @@ export const DetailPage: React.FC = () => {
                 <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{numSeasons}</span>
               </div>
             )}
+            {studios.length > 0 && (
+              <div className="flex flex-col col-span-2">
+                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">STUDIO</span>
+                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{studios.map(s => s.name).join(' · ')}</span>
+              </div>
+            )}
             {data.vote_count !== undefined && data.vote_count > 0 && (
               <div className="flex flex-col">
                 <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">VOTES</span>
@@ -440,6 +532,26 @@ export const DetailPage: React.FC = () => {
           </div>
           <div className="border-t border-[rgba(255,255,255,0.06)] mt-8 sm:mt-10 w-full" />
         </motion.section>
+
+        {/* KEYWORDS */}
+        {keywords.length > 0 && (
+          <motion.section variants={itemVariants}>
+            <h2 className="font-sans font-medium text-[11px] uppercase tracking-[0.14em] text-[#5a5a72] mb-3">
+              TAGS
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {keywords.slice(0, 16).map((kw) => (
+                <span
+                  key={kw.id}
+                  className="font-sans text-[11px] text-[#9898b0] px-2.5 py-1 rounded-full bg-[#0e0e1a] border border-[rgba(255,255,255,0.07)] hover:border-[var(--color-accent)] hover:text-[#eeeef5] transition-colors cursor-default"
+                >
+                  {kw.name}
+                </span>
+              ))}
+            </div>
+            <div className="border-t border-[rgba(255,255,255,0.06)] mt-8 sm:mt-10 w-full" />
+          </motion.section>
+        )}
 
         {/* SEASONS & EPISODES — TV only */}
         {type === 'tv' && numSeasons > 0 && (

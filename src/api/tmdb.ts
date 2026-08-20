@@ -56,6 +56,50 @@ export interface TMDBDetail {
   content_ratings?: {
     results: { iso_3166_1: string; rating: string }[];
   };
+  'watch/providers'?: {
+    results: {
+      [countryCode: string]: {
+        link: string;
+        flatrate?: { provider_id: number; provider_name: string; logo_path: string }[];
+        rent?: { provider_id: number; provider_name: string; logo_path: string }[];
+        buy?: { provider_id: number; provider_name: string; logo_path: string }[];
+      };
+    };
+  };
+  keywords?: {
+    results?: { id: number; name: string }[];   // movies
+    results_tv?: never;
+  } | {
+    results?: { id: number; name: string }[];   // tv (same shape, TMDB returns same key)
+  };
+  release_dates?: {
+    results: {
+      iso_3166_1: string;
+      release_dates: { certification: string; type: number }[];
+    }[];
+  };
+  networks?: { id: number; name: string; logo_path: string | null; origin_country: string }[];
+  next_episode_to_air?: {
+    name: string;
+    air_date: string;
+    episode_number: number;
+    season_number: number;
+  } | null;
+  last_episode_to_air?: {
+    name: string;
+    air_date: string;
+    episode_number: number;
+    season_number: number;
+  } | null;
+  belongs_to_collection?: {
+    id: number;
+    name: string;
+    poster_path: string | null;
+    backdrop_path: string | null;
+  } | null;
+  spoken_languages?: { english_name: string; iso_639_1: string }[];
+  production_companies?: { id: number; name: string; logo_path: string | null }[];
+  popularity?: number;
 }
 
 export interface TMDBSeason {
@@ -163,7 +207,7 @@ export const createTMDBClient = (apiKey: string) => {
     getTopRatedSeries: () => fetchTMDB<TMDBResponse<TMDBMedia>>('/tv/top_rated'),
     getMediaDetails: (id: string, type: 'movie' | 'tv') => 
       fetchTMDB<TMDBDetail>(
-        `/${type}/${id}?append_to_response=credits,videos,similar${type === 'tv' ? ',content_ratings' : ''}`
+        `/${type}/${id}?append_to_response=credits,videos,similar,content_ratings,watch/providers,keywords,release_dates`
       ),
     getTVSeason: (id: string, seasonNumber: number) =>
       fetchTMDB<TMDBSeason>(`/tv/${id}/season/${seasonNumber}`),
