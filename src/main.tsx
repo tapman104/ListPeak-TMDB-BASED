@@ -1,7 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider, createRouter } from '@tanstack/react-router';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
+import * as idb from 'idb-keyval';
 import './index.css';
 
 // Import the generated route tree
@@ -14,6 +17,14 @@ const queryClient = new QueryClient({
       refetchOnReconnect: false,
       retry: 1,
     },
+  },
+});
+
+const persister = createSyncStoragePersister({
+  storage: {
+    getItem: (key) => idb.get(key) as unknown as string,
+    setItem: (key, value) => { idb.set(key, value); },
+    removeItem: (key) => { idb.del(key); },
   },
 });
 
@@ -34,8 +45,11 @@ declare module '@tanstack/react-router' {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider 
+      client={queryClient} 
+      persistOptions={{ persister, maxAge: 1000 * 60 * 60 * 24 * 7 }}
+    >
       <RouterProvider router={router} />
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   </React.StrictMode>
 );
