@@ -35,7 +35,7 @@ export const DetailPage: React.FC = () => {
   const apiKey = useKeyStore((state) => state.apiKey);
   
   const [showCopied, setShowCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'seasons'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'seasons' | 'cast'>('overview');
   const [selectedSeason, setSelectedSeason] = useState(1);
 
   const castScrollRef = useRef<HTMLDivElement>(null);
@@ -78,6 +78,13 @@ export const DetailPage: React.FC = () => {
     queryFn: () => tmdb!.getTVSeason(id, 1),
     enabled: !!apiKey && !!tmdb && type === 'tv',
     staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: creditsData, isLoading: creditsLoading } = useQuery({
+    queryKey: ['credits', type, id],
+    queryFn: () => type === 'tv' ? tmdb!.getTVCredits(id) : tmdb!.getMovieCredits(id),
+    enabled: !!id && !!apiKey && !!tmdb,
+    staleTime: 1000 * 60 * 10,
   });
 
   const previewEpisodes = previewSeasonData?.episodes?.slice(0, 8) ?? [];
@@ -472,25 +479,26 @@ export const DetailPage: React.FC = () => {
         className="w-full max-w-[1000px] mx-auto px-4 sm:px-8 md:px-12 pt-6 md:pt-10 pb-12 flex flex-col gap-8 sm:gap-10"
       >
         
-        {type === 'tv' && seasons && seasons.length > 0 && (
-          <div className="flex gap-1 border-b border-[rgba(255,255,255,0.07)] mb-8">
-            {(['overview', 'seasons'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`
-                  font-sans text-xs font-semibold uppercase tracking-[0.12em] px-4 py-2.5
-                  border-b-2 -mb-px transition-colors
-                  ${activeTab === tab
-                    ? 'border-[var(--color-accent)] text-white'
-                    : 'border-transparent text-white/60 hover:text-[#a0a0b8]'}
-                `}
-              >
-                {tab === 'overview' ? 'Overview' : 'Seasons'}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex gap-1 border-b border-[rgba(255,255,255,0.07)] mb-8 overflow-x-auto no-scrollbar">
+          {(type === 'tv' && seasons && seasons.length > 0
+            ? ['overview', 'seasons', 'cast'] as const
+            : ['overview', 'cast'] as const
+          ).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`
+                font-sans text-xs font-semibold uppercase tracking-[0.12em] px-4 py-2.5 whitespace-nowrap
+                border-b-2 -mb-px transition-colors
+                ${activeTab === tab
+                  ? 'border-[var(--color-accent)] text-white'
+                  : 'border-transparent text-white/60 hover:text-[#a0a0b8]'}
+              `}
+            >
+              {tab === 'overview' ? 'Overview' : tab === 'seasons' ? 'Seasons' : 'Cast & Crew'}
+            </button>
+          ))}
+        </div>
 
         <>
           {(activeTab === 'overview' || type !== 'tv') && (
@@ -624,13 +632,7 @@ export const DetailPage: React.FC = () => {
                   </button>
                 </div>
 
-                {/* View All link */}
-                <button
-                  onClick={() => navigate({ to: '/detail/$id/cast', params: { id }, search: { type } })}
-                  className="font-sans text-[11px] text-white/60 hover:text-[var(--color-accent)] transition-colors uppercase tracking-[0.1em]"
-                >
-                  View All →
-                </button>
+                {/* View All link removed as tab replaces it */}
               </div>
 
             </div>
@@ -985,6 +987,124 @@ export const DetailPage: React.FC = () => {
             </motion.div>
           )}
         </>
+
+        {activeTab === 'cast' && (
+          <motion.div variants={containerVariants} initial="hidden" animate="show" className="flex flex-col gap-10">
+            {creditsLoading ? (
+              <div className="flex flex-col gap-8">
+                <div>
+                  <div className="h-4 w-24 rounded bg-[#1c1c2e] animate-shimmer mb-6" />
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className="flex flex-col items-center gap-2">
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#1c1c2e] animate-shimmer" />
+                        <div className="h-3 w-16 bg-[#1c1c2e] animate-shimmer rounded mt-1" />
+                        <div className="h-2 w-12 bg-[#1c1c2e] animate-shimmer rounded" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : creditsData ? (
+              <>
+                {/* Cast */}
+                {creditsData.cast && creditsData.cast.length > 0 && (
+                  <motion.section variants={itemVariants}>
+                    <h2 className="font-sans font-medium text-xs uppercase tracking-[0.15em] text-white/60 mb-6">
+                      CAST
+                    </h2>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
+                      {creditsData.cast.map(actor => (
+                        <div 
+                          key={`cast-${actor.id}`} 
+                          className="flex flex-col items-center gap-2 cursor-pointer group"
+                          onClick={() => navigate({ to: '/person/$id', params: { id: actor.id.toString() } })}
+                        >
+                          {actor.profile_path ? (
+                            <img 
+                              src={`${TMDB_IMAGE_BASE}w185${actor.profile_path}`} 
+                              alt={actor.name}
+                              className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-2 border-[rgba(255,255,255,0.1)] group-hover:border-[var(--color-accent)] transition-colors shadow-md block"
+                            />
+                          ) : (
+                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#1c1c2e] border-2 border-[rgba(255,255,255,0.1)] flex items-center justify-center group-hover:border-[var(--color-accent)] transition-colors shadow-md">
+                              <User size={28} className="text-white/60" />
+                            </div>
+                          )}
+                          <div className="flex flex-col w-full text-center mt-1 px-2">
+                            <span className="font-sans font-medium text-[13px] text-white/90 truncate" title={actor.name}>
+                              {actor.name}
+                            </span>
+                            <span className="font-sans font-normal text-[11px] text-white/60 truncate" title={actor.character}>
+                              {actor.character}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.section>
+                )}
+
+                {/* Crew */}
+                {(() => {
+                  if (!creditsData.crew || creditsData.crew.length === 0) return null;
+                  
+                  const deptMap: Record<string, any[]> = {};
+                  creditsData.crew.forEach(member => {
+                    if (!deptMap[member.department]) deptMap[member.department] = [];
+                    const existing = deptMap[member.department].find(m => m.id === member.id);
+                    if (!existing) {
+                      deptMap[member.department].push({ ...member });
+                    } else {
+                      if (!existing.job.includes(member.job)) {
+                        existing.job += `, ${member.job}`;
+                      }
+                    }
+                  });
+                  
+                  return Object.entries(deptMap)
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([dept, members]) => (
+                      <motion.section variants={itemVariants} key={dept} className="mt-8">
+                        <h2 className="font-sans font-medium text-xs uppercase tracking-[0.15em] text-white/60 mb-6">
+                          {dept.toUpperCase()}
+                        </h2>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
+                          {members.map(member => (
+                            <div 
+                              key={`crew-${dept}-${member.id}`} 
+                              className="flex flex-col items-center gap-2 cursor-pointer group"
+                              onClick={() => navigate({ to: '/person/$id', params: { id: member.id.toString() } })}
+                            >
+                              {member.profile_path ? (
+                                <img 
+                                  src={`${TMDB_IMAGE_BASE}w185${member.profile_path}`} 
+                                  alt={member.name}
+                                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-2 border-[rgba(255,255,255,0.1)] group-hover:border-[var(--color-accent)] transition-colors shadow-md block"
+                                />
+                              ) : (
+                                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#1c1c2e] border-2 border-[rgba(255,255,255,0.1)] flex items-center justify-center group-hover:border-[var(--color-accent)] transition-colors shadow-md">
+                                  <User size={28} className="text-white/60" />
+                                </div>
+                              )}
+                              <div className="flex flex-col w-full text-center mt-1 px-2">
+                                <span className="font-sans font-medium text-[13px] text-white/90 truncate" title={member.name}>
+                                  {member.name}
+                                </span>
+                                <span className="font-sans font-normal text-[11px] text-white/60 line-clamp-2" title={member.job}>
+                                  {member.job}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.section>
+                    ));
+                })()}
+              </>
+            ) : null}
+          </motion.div>
+        )}
 
         {/* YOU MAY ALSO LIKE SECTION */}
         {data.similar?.results && data.similar.results.length > 0 && (
