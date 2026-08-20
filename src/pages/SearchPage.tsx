@@ -1,24 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useSearch as useRouteSearch } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import {
   ArrowLeft,
-  SlidersHorizontal,
-  Star,
   RefreshCw,
   Search as SearchIcon,
   User,
-  Film,
-  Tv,
-  Users,
-  Layers,
-  ChevronDown,
-  ChevronUp,
-  RotateCcw,
 } from 'lucide-react';
-import { useKeyStore } from '../store/keyStore';
-import { createTMDBClient, type TMDBPerson } from '../api/tmdb';
+import { type TMDBPerson } from '../api/tmdb';
 import { useSearch, type SearchType } from '../hooks/useSearch';
 import { SearchAutocomplete } from '../components/SearchAutocomplete';
 import { PosterCard } from '../components/PosterCard';
@@ -34,69 +23,21 @@ export const SearchPage: React.FC = () => {
   const navigate = useNavigate();
   const routeSearch = useRouteSearch({ strict: false }) as SearchRouteParams;
 
-  const apiKey = useKeyStore((state) => state.apiKey);
-  const tmdb = apiKey ? createTMDBClient(apiKey) : null;
-
   // Local search state
   const routeQuery = routeSearch?.q ?? '';
   const [searchQuery, setSearchQuery] = useState(routeQuery);
   const [prevRouteQuery, setPrevRouteQuery] = useState(routeQuery);
-  const [selectedType, setSelectedType] = useState<SearchType>('all');
-  const [selectedGenres, setSelectedGenres] = useState<number[]>([]);
-  const [minRating, setMinRating] = useState<number>(0);
-  const [minYear, setMinYear] = useState<string>('');
-  const [maxYear, setMaxYear] = useState<string>('');
-  const [filterPanelOpen, setFilterPanelOpen] = useState<boolean>(
-    typeof window !== 'undefined' ? window.innerWidth >= 768 : false
-  );
+  const [selectedType] = useState<SearchType>('all');
+  const [selectedGenres] = useState<number[]>([]);
+  const [minRating] = useState<number>(0);
+  const [minYear] = useState<string>('');
+  const [maxYear] = useState<string>('');
 
   // Sync route query change
   if (prevRouteQuery !== routeQuery) {
     setPrevRouteQuery(routeQuery);
     setSearchQuery(routeQuery);
   }
-
-  // Fetch Genres
-  const { data: movieGenresData } = useQuery({
-    queryKey: ['movie-genres'],
-    queryFn: ({ signal }) => tmdb!.getMovieGenres({ signal }),
-    enabled: !!tmdb,
-    staleTime: 1000 * 60 * 60,
-  });
-
-  const { data: tvGenresData } = useQuery({
-    queryKey: ['tv-genres'],
-    queryFn: ({ signal }) => tmdb!.getTVGenres({ signal }),
-    enabled: !!tmdb,
-    staleTime: 1000 * 60 * 60,
-  });
-
-  // Calculate combined or type-specific genres
-  const availableGenres = useMemo(() => {
-    const movieGenres = movieGenresData?.genres || [];
-    const tvGenres = tvGenresData?.genres || [];
-
-    if (selectedType === 'movie') return movieGenres;
-    if (selectedType === 'tv') return tvGenres;
-    if (selectedType === 'person') return [];
-
-    // Deduplicate by ID for 'all'
-    const map = new Map<number, string>();
-    for (const g of [...movieGenres, ...tvGenres]) {
-      map.set(g.id, g.name);
-    }
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [movieGenresData, tvGenresData, selectedType]);
-
-  // Active filters count
-  const activeFiltersCount = useMemo(() => {
-    let count = 0;
-    if (selectedGenres.length > 0) count += selectedGenres.length;
-    if (minRating > 0) count += 1;
-    if (minYear.trim().length > 0) count += 1;
-    if (maxYear.trim().length > 0) count += 1;
-    return count;
-  }, [selectedGenres, minRating, minYear, maxYear]);
 
   // Perform search
   const {
@@ -123,25 +64,6 @@ export const SearchPage: React.FC = () => {
       to: '/search',
       search: { q: newQuery },
     });
-  };
-
-  const handleClearAllFilters = () => {
-    setSelectedGenres([]);
-    setMinRating(0);
-    setMinYear('');
-    setMaxYear('');
-  };
-
-  const toggleGenre = (id: number) => {
-    setSelectedGenres((prev) =>
-      prev.includes(id) ? prev.filter((gId) => gId !== id) : [...prev, id]
-    );
-  };
-
-  const handleTypeChange = (type: SearchType) => {
-    setSelectedType(type);
-    // Reset genres that might not apply
-    setSelectedGenres([]);
   };
 
   const handleBack = () => {
