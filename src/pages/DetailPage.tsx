@@ -111,14 +111,14 @@ export const DetailPage: React.FC = () => {
   if (error || !data) {
     return (
       <div className="min-h-[60vh] bg-[var(--color-background)] flex flex-col items-center justify-center text-center px-4 py-16">
-        <AlertCircle size={48} className="text-[#5a5a72] mb-4" />
-        <h1 className="font-sans font-semibold text-lg sm:text-xl text-[#eeeef5] mb-2">Could not load title</h1>
-        <p className="font-sans font-normal text-sm text-[#5a5a72] mb-6 max-w-sm">
+        <AlertCircle size={48} className="text-white/60 mb-4" />
+        <h1 className="font-sans font-semibold text-lg sm:text-xl text-white mb-2">Could not load title</h1>
+        <p className="font-sans font-normal text-sm text-white/60 mb-6 max-w-sm">
           The title may not exist or your API key may be invalid.
         </p>
         <button 
           onClick={() => window.history.back()}
-          className="flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-full bg-[rgba(15,15,26,0.8)] backdrop-blur-md border border-[rgba(255,255,255,0.15)] text-[#eeeef5] font-sans font-medium text-sm hover:bg-[var(--color-accent-dim)] hover:border-[var(--color-accent)] transition-all cursor-pointer"
+          className="flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-full bg-[rgba(15,15,26,0.8)] backdrop-blur-md border border-[rgba(255,255,255,0.15)] text-white font-sans font-medium text-sm hover:bg-[var(--color-accent-dim)] hover:border-[var(--color-accent)] transition-all cursor-pointer"
         >
           <ArrowLeft size={16} /> Back
         </button>
@@ -192,6 +192,72 @@ export const DetailPage: React.FC = () => {
   // Production companies (first 3)
   const studios: { id: number; name: string; logo_path: string | null }[] =
     ((data as any).production_companies ?? []).slice(0, 3);
+
+  // Aired date range
+  const airedRange = (() => {
+    if (type === 'movie') return null;
+    const start = (data as any).first_air_date;
+    const end = (data as any).last_air_date;
+    if (!start) return null;
+    const fmt = (d: string) =>
+      new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    if (data.status === 'Ended' && end && end !== start) return `${fmt(start)} – ${fmt(end)}`;
+    return fmt(start);
+  })();
+
+  // Aired on (weekdays)
+  const airedOn = (() => {
+    if (type !== 'tv') return null;
+    return (data as any).networks?.[0]?.origin_country === 'KR'
+      ? null // TMDB doesn't reliably return this; skip for KR shows
+      : null;
+    // Note: TMDB doesn't expose broadcast day reliably — omit this field
+  })();
+
+  // Episode runtime
+  const episodeRuntime = (() => {
+    const rt = (data as any).episode_run_time;
+    if (!rt || rt.length === 0) return null;
+    const mins = rt[0];
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return h > 0 ? `${h} hr. ${m} min.` : `${m} min.`;
+  })();
+
+  // Movie runtime
+  const movieRuntime = (() => {
+    if (type !== 'movie') return null;
+    const mins = (data as any).runtime;
+    if (!mins) return null;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return h > 0 ? `${h} hr. ${m} min.` : `${m} min.`;
+  })();
+
+  // Country of origin
+  const originCountry = (() => {
+    const countries = (data as any).origin_country as string[] | undefined;
+    if (countries && countries.length > 0) {
+      const names: Record<string, string> = {
+        KR: 'South Korea', JP: 'Japan', US: 'United States',
+        CN: 'China', TW: 'Taiwan', TH: 'Thailand', GB: 'United Kingdom',
+      };
+      return names[countries[0]] ?? countries[0];
+    }
+    return (data as any).production_countries?.[0]?.name ?? null;
+  })();
+
+  // Format / type label
+  const formatLabel = (() => {
+    if (type === 'movie') return 'Movie';
+    const epCount = (data as any).number_of_episodes;
+    const seasonCount = (data as any).number_of_seasons;
+    if (seasonCount === 1 && epCount <= 20) return 'Mini Series';
+    return 'Standard Series';
+  })();
+
+  // Genre label (first genre)
+  const genreLabel = (data as any).genres?.[0]?.name ?? null;
   
   return (
     <div className="min-h-screen bg-[#07070d] pb-20 overflow-x-hidden">
@@ -363,7 +429,7 @@ export const DetailPage: React.FC = () => {
             {/* Watch Providers */}
             {watchProviders && watchProviders.length > 0 && (
               <motion.div variants={itemVariants} className="flex items-center gap-2 flex-wrap justify-center md:justify-start mt-1">
-                <span className="font-sans text-[10px] text-[#5a5a72] uppercase tracking-wider">Stream on</span>
+                <span className="font-sans text-[10px] text-white/60 uppercase tracking-wider">Stream on</span>
                 {watchProviders.slice(0, 5).map((p: any) => (
                   <img
                     key={p.provider_id}
@@ -386,7 +452,7 @@ export const DetailPage: React.FC = () => {
         initial="hidden"
         whileInView="show"
         viewport={{ once: true, margin: "-80px" }}
-        className="w-full max-w-[1000px] mx-auto px-4 sm:px-8 md:px-12 pt-6 md:pt-10 pb-12 flex flex-col gap-8 sm:gap-10 md:gap-12"
+        className="w-full max-w-[1000px] mx-auto px-4 sm:px-8 md:px-12 pt-6 md:pt-10 pb-12 flex flex-col gap-8 sm:gap-10"
       >
         
         {type === 'tv' && seasons && seasons.length > 0 && (
@@ -399,8 +465,8 @@ export const DetailPage: React.FC = () => {
                   font-sans text-xs font-semibold uppercase tracking-[0.12em] px-4 py-2.5
                   border-b-2 -mb-px transition-colors
                   ${activeTab === tab
-                    ? 'border-[var(--color-accent)] text-[#eeeef5]'
-                    : 'border-transparent text-[#5a5a72] hover:text-[#9898b0]'}
+                    ? 'border-[var(--color-accent)] text-white'
+                    : 'border-transparent text-white/60 hover:text-[#a0a0b8]'}
                 `}
               >
                 {tab === 'overview' ? 'Overview' : 'Seasons'}
@@ -411,19 +477,18 @@ export const DetailPage: React.FC = () => {
 
         <>
           {(activeTab === 'overview' || type !== 'tv') && (
-            <motion.div variants={containerVariants} initial="hidden" animate="show" className="flex flex-col gap-8 sm:gap-10 md:gap-12">
+            <motion.div variants={containerVariants} initial="hidden" animate="show" className="flex flex-col gap-8 sm:gap-10">
         
               {/* OVERVIEW SECTION */}
         {data.overview && (
           <motion.section variants={itemVariants}>
-            <h2 className="font-sans font-medium text-[11px] uppercase tracking-[0.14em] text-[#5a5a72] mb-3">
+            <h2 className="font-sans font-medium text-xs uppercase tracking-[0.15em] font-semibold text-white/60 mb-3">
               OVERVIEW
             </h2>
-            <p className="font-sans font-normal text-sm sm:text-base md:text-lg text-[#e2e2e2] leading-[1.6] max-w-[840px]">
+            <p className="font-sans text-sm sm:text-base text-white/80 leading-relaxed max-w-[840px]">
               {data.overview}
             </p>
-            <div className="border-t border-[rgba(255,255,255,0.06)] mt-8 sm:mt-10 w-full" />
-          </motion.section>
+            </motion.section>
         )}
 
         {/* Next Episode Banner — TV ongoing only */}
@@ -446,8 +511,8 @@ export const DetailPage: React.FC = () => {
           <motion.section variants={itemVariants}>
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#12121e] border border-white/08">
               <div className="flex flex-col">
-                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72]">Part of</span>
-                <span className="font-sans font-semibold text-sm text-[#eeeef5] mt-0.5">{collection.name}</span>
+                <span className="font-sans font-semibold text-xs uppercase tracking-[0.1em] text-white/60">Part of</span>
+                <span className="font-sans font-semibold text-sm text-white mt-0.5">{collection.name}</span>
               </div>
             </div>
           </motion.section>
@@ -456,7 +521,7 @@ export const DetailPage: React.FC = () => {
         {/* TOP CAST SECTION */}
         {data.credits?.cast && data.credits.cast.length > 0 && (
           <motion.section variants={itemVariants}>
-            <h2 className="font-sans font-medium text-[11px] uppercase tracking-[0.14em] text-[#5a5a72] mb-4">
+            <h2 className="font-sans font-medium text-xs uppercase tracking-[0.15em] font-semibold text-white/60 mb-4">
               TOP CAST
             </h2>
             <div className="flex overflow-x-auto gap-4 sm:gap-6 pb-3 no-scrollbar snap-x snap-mandatory">
@@ -474,98 +539,169 @@ export const DetailPage: React.FC = () => {
                     />
                   ) : (
                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#1c1c2e] border-2 border-[rgba(255,255,255,0.1)] flex items-center justify-center group-hover:border-[var(--color-accent)] transition-colors shadow-md">
-                      <User size={24} className="text-[#5a5a72]" />
+                      <User size={24} className="text-white/60" />
                     </div>
                   )}
                   <div className="flex flex-col w-full text-center">
-                    <span className="font-sans font-semibold text-xs text-[#eeeef5] truncate" title={actor.name}>
+                    <span className="font-sans font-medium text-[13px] text-white/90 truncate" title={actor.name}>
                       {actor.name}
                     </span>
-                    <span className="font-sans font-normal text-[10px] sm:text-[11px] text-[#5a5a72] truncate" title={actor.character}>
+                    <span className="font-sans font-normal text-[10px] sm:text-[11px] text-white/60 truncate" title={actor.character}>
                       {actor.character}
                     </span>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="border-t border-[rgba(255,255,255,0.06)] mt-8 sm:mt-10 w-full" />
-          </motion.section>
+            </motion.section>
         )}
 
         {/* DETAILS GRID SECTION */}
         <motion.section variants={itemVariants}>
-          <h2 className="font-sans font-medium text-[11px] uppercase tracking-[0.14em] text-[#5a5a72] mb-4">
+          <h2 className="font-sans font-medium text-xs uppercase tracking-[0.15em] font-semibold text-white/60 mb-4">
             DETAILS
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 sm:gap-x-8 gap-y-4 sm:gap-y-5 max-w-[840px]">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4 max-w-[720px]">
+          
+            {/* Title */}
+            <div className="flex flex-col">
+              <span className="font-sans font-semibold text-xs uppercase tracking-[0.1em] text-white/60 mb-1">TITLE</span>
+              <span className="font-sans font-medium text-[13px] text-white/90">{data.title || data.name}</span>
+            </div>
+          
+            {/* Type/Genre */}
+            {genreLabel && (
+              <div className="flex flex-col">
+                <span className="font-sans font-semibold text-xs uppercase tracking-[0.1em] text-white/60 mb-1">TYPE</span>
+                <span className="font-sans font-medium text-[13px] text-white/90">{genreLabel}</span>
+              </div>
+            )}
+          
+            {/* Format */}
+            <div className="flex flex-col">
+              <span className="font-sans font-semibold text-xs uppercase tracking-[0.1em] text-white/60 mb-1">FORMAT</span>
+              <span className="font-sans font-medium text-[13px] text-white/90">{formatLabel}</span>
+            </div>
+          
+            {/* Country */}
+            {originCountry && (
+              <div className="flex flex-col">
+                <span className="font-sans font-semibold text-xs uppercase tracking-[0.1em] text-white/60 mb-1">COUNTRY</span>
+                <span className="font-sans font-medium text-[13px] text-white/90">{originCountry}</span>
+              </div>
+            )}
+          
+            {/* Status */}
             {data.status && (
               <div className="flex flex-col">
-                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">STATUS</span>
-                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{data.status}</span>
+                <span className="font-sans font-semibold text-xs uppercase tracking-[0.1em] text-white/60 mb-1">STATUS</span>
+                <span className="font-sans font-medium text-[13px] text-white/90">{data.status}</span>
               </div>
             )}
-            {director && (
-              <div className="flex flex-col">
-                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">DIRECTOR</span>
-                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{director.name}</span>
-              </div>
-            )}
-            {createdBy && createdBy.length > 0 && (
-              <div className="flex flex-col">
-                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">CREATOR</span>
-                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{createdBy.map((c: any) => c.name).join(', ')}</span>
-              </div>
-            )}
+          
+            {/* Language */}
             {spokenLang && (
               <div className="flex flex-col">
-                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">LANGUAGE</span>
-                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{spokenLang}</span>
+                <span className="font-sans font-semibold text-xs uppercase tracking-[0.1em] text-white/60 mb-1">LANGUAGE</span>
+                <span className="font-sans font-medium text-[13px] text-white/90">{spokenLang}</span>
               </div>
             )}
+          
+            {/* Network */}
             {networks.length > 0 && (
               <div className="flex flex-col">
-                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">NETWORK</span>
-                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{networks.map(n => n.name).join(', ')}</span>
+                <span className="font-sans font-semibold text-xs uppercase tracking-[0.1em] text-white/60 mb-1">NETWORK</span>
+                <span className="font-sans font-medium text-[13px] text-white/90">{networks.map((n: any) => n.name).join(', ')}</span>
               </div>
             )}
-            {data.budget !== undefined && data.budget > 0 && (
-              <div className="flex flex-col">
-                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">BUDGET</span>
-                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">${data.budget.toLocaleString()}</span>
-              </div>
-            )}
-            {data.revenue !== undefined && data.revenue > 0 && (
-              <div className="flex flex-col">
-                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">REVENUE</span>
-                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">${data.revenue.toLocaleString()}</span>
-              </div>
-            )}
+          
+            {/* Episodes */}
             {numEpisodes !== undefined && (
               <div className="flex flex-col">
-                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">EPISODES</span>
-                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{numEpisodes}</span>
+                <span className="font-sans font-semibold text-xs uppercase tracking-[0.1em] text-white/60 mb-1">EPISODES</span>
+                <span className="font-sans font-medium text-[13px] text-white/90">{numEpisodes}</span>
               </div>
             )}
-            {numSeasons !== undefined && (
+          
+            {/* Seasons */}
+            {numSeasons !== undefined && numSeasons > 1 && (
               <div className="flex flex-col">
-                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">SEASONS</span>
-                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{numSeasons}</span>
+                <span className="font-sans font-semibold text-xs uppercase tracking-[0.1em] text-white/60 mb-1">SEASONS</span>
+                <span className="font-sans font-medium text-[13px] text-white/90">{numSeasons}</span>
               </div>
             )}
+          
+            {/* Aired */}
+            {airedRange && (
+              <div className="flex flex-col">
+                <span className="font-sans font-semibold text-xs uppercase tracking-[0.1em] text-white/60 mb-1">AIRED</span>
+                <span className="font-sans font-medium text-[13px] text-white/90">{airedRange}</span>
+              </div>
+            )}
+          
+            {/* Duration */}
+            {(episodeRuntime || movieRuntime) && (
+              <div className="flex flex-col">
+                <span className="font-sans font-semibold text-xs uppercase tracking-[0.1em] text-white/60 mb-1">DURATION</span>
+                <span className="font-sans font-medium text-[13px] text-white/90">{episodeRuntime || movieRuntime}</span>
+              </div>
+            )}
+          
+            {/* Content Rating */}
+            {(contentRating || mpaaRating) && (
+              <div className="flex flex-col">
+                <span className="font-sans font-semibold text-xs uppercase tracking-[0.1em] text-white/60 mb-1">RATING</span>
+                <span className="font-sans font-medium text-[13px] text-white/90">{contentRating || mpaaRating}</span>
+              </div>
+            )}
+          
+            {/* Director — movies */}
+            {director && (
+              <div className="flex flex-col">
+                <span className="font-sans font-semibold text-xs uppercase tracking-[0.1em] text-white/60 mb-1">DIRECTOR</span>
+                <span className="font-sans font-medium text-[13px] text-white/90">{director.name}</span>
+              </div>
+            )}
+          
+            {/* Creator — TV */}
+            {createdBy && createdBy.length > 0 && (
+              <div className="flex flex-col">
+                <span className="font-sans font-semibold text-xs uppercase tracking-[0.1em] text-white/60 mb-1">CREATOR</span>
+                <span className="font-sans font-medium text-[13px] text-white/90">{createdBy.map((c: any) => c.name).join(', ')}</span>
+              </div>
+            )}
+          
+            {/* Studio */}
             {studios.length > 0 && (
               <div className="flex flex-col col-span-2">
-                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">STUDIO</span>
-                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{studios.map(s => s.name).join(' · ')}</span>
+                <span className="font-sans font-semibold text-xs uppercase tracking-[0.1em] text-white/60 mb-1">STUDIO</span>
+                <span className="font-sans font-medium text-[13px] text-white/90">{studios.map((s: any) => s.name).join(' · ')}</span>
               </div>
             )}
-            {data.vote_count !== undefined && data.vote_count > 0 && (
+          
+            {/* Budget / Revenue — movies */}
+            {(data as any).budget > 0 && (
               <div className="flex flex-col">
-                <span className="font-sans font-medium text-[10px] uppercase tracking-wider text-[#5a5a72] mb-1">VOTES</span>
-                <span className="font-sans font-medium text-xs sm:text-sm text-[#eeeef5]">{data.vote_count.toLocaleString()} votes</span>
+                <span className="font-sans font-semibold text-xs uppercase tracking-[0.1em] text-white/60 mb-1">BUDGET</span>
+                <span className="font-sans font-medium text-[13px] text-white/90">${(data as any).budget.toLocaleString()}</span>
               </div>
             )}
+            {(data as any).revenue > 0 && (
+              <div className="flex flex-col">
+                <span className="font-sans font-semibold text-xs uppercase tracking-[0.1em] text-white/60 mb-1">REVENUE</span>
+                <span className="font-sans font-medium text-[13px] text-white/90">${(data as any).revenue.toLocaleString()}</span>
+              </div>
+            )}
+          
+            {/* Votes */}
+            {data.vote_count > 0 && (
+              <div className="flex flex-col">
+                <span className="font-sans font-semibold text-xs uppercase tracking-[0.1em] text-white/60 mb-1">VOTES</span>
+                <span className="font-sans font-medium text-[13px] text-white/90">{data.vote_count.toLocaleString()} votes</span>
+              </div>
+            )}
+          
           </div>
-          <div className="border-t border-[rgba(255,255,255,0.06)] mt-8 sm:mt-10 w-full" />
         </motion.section>
 
         {type === 'tv' && previewEpisodes.length > 0 && activeTab === 'overview' && (
@@ -573,7 +709,7 @@ export const DetailPage: React.FC = () => {
         
             {/* Section header */}
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-sans font-medium text-[11px] uppercase tracking-[0.14em] text-[#5a5a72]">
+              <h2 className="font-sans font-medium text-xs uppercase tracking-[0.15em] font-semibold text-white/60">
                 Episodes
               </h2>
               <button
@@ -581,7 +717,7 @@ export const DetailPage: React.FC = () => {
                   setActiveTab('seasons');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="font-sans text-[11px] text-[#5a5a72] hover:text-[var(--color-accent)] transition-colors uppercase tracking-wider cursor-pointer"
+                className="font-sans text-[11px] text-white/60 hover:text-[var(--color-accent)] transition-colors uppercase tracking-wider cursor-pointer"
               >
                 See All →
               </button>
@@ -631,12 +767,12 @@ export const DetailPage: React.FC = () => {
         
                   {/* Episode title */}
                   <div className="flex flex-col gap-0.5 px-0.5">
-                    <span className="font-sans font-semibold text-xs text-[#eeeef5] leading-snug line-clamp-1">
+                    <span className="font-sans font-semibold text-xs text-white leading-snug line-clamp-1">
                       {ep.name}
                     </span>
                     {/* Overview */}
                     {ep.overview && (
-                      <p className="font-sans text-[11px] text-[#9898b0] leading-relaxed line-clamp-2">
+                      <p className="font-sans text-[11px] text-[#a0a0b8] leading-relaxed line-clamp-2">
                         {ep.overview}
                       </p>
                     )}
@@ -644,28 +780,26 @@ export const DetailPage: React.FC = () => {
                 </div>
               ))}
             </div>
-            <div className="border-t border-[rgba(255,255,255,0.06)] mt-8 sm:mt-10 w-full" />
-          </motion.section>
+            </motion.section>
         )}
 
         {/* KEYWORDS */}
         {keywords.length > 0 && (
           <motion.section variants={itemVariants}>
-            <h2 className="font-sans font-medium text-[11px] uppercase tracking-[0.14em] text-[#5a5a72] mb-3">
+            <h2 className="font-sans font-medium text-xs uppercase tracking-[0.15em] font-semibold text-white/60 mb-3">
               TAGS
             </h2>
             <div className="flex flex-wrap gap-2">
               {keywords.slice(0, 16).map((kw) => (
                 <span
                   key={kw.id}
-                  className="font-sans text-[11px] text-[#9898b0] px-2.5 py-1 rounded-full bg-[#0e0e1a] border border-[rgba(255,255,255,0.07)] hover:border-[var(--color-accent)] hover:text-[#eeeef5] transition-colors cursor-default"
+                  className="font-sans text-[11px] text-[#a0a0b8] px-2.5 py-1 rounded-full bg-[#0e0e1a] border border-[rgba(255,255,255,0.07)] hover:border-[var(--color-accent)] hover:text-white transition-colors cursor-default"
                 >
                   {kw.name}
                 </span>
               ))}
             </div>
-            <div className="border-t border-[rgba(255,255,255,0.06)] mt-8 sm:mt-10 w-full" />
-          </motion.section>
+            </motion.section>
         )}
 
             </motion.div>
@@ -682,7 +816,7 @@ export const DetailPage: React.FC = () => {
                       className={`font-sans text-xs font-semibold px-4 py-1.5 rounded-full border transition-colors
                         ${selectedSeason === s.season_number
                           ? 'bg-[var(--color-accent)] border-[var(--color-accent)] text-black'
-                          : 'border-[rgba(255,255,255,0.12)] text-[#9898b0] hover:border-white/30 hover:text-[#eeeef5]'
+                          : 'border-[rgba(255,255,255,0.12)] text-[#a0a0b8] hover:border-white/30 hover:text-white'
                         }`}
                     >
                       Season {s.season_number}
@@ -729,10 +863,10 @@ export const DetailPage: React.FC = () => {
                         <div className="flex flex-col justify-center gap-1 min-w-0">
                           {/* Number badge + title row */}
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-sans text-[10px] font-bold text-[#5a5a72] bg-[#0e0e1a] px-2 py-0.5 rounded shrink-0">
+                            <span className="font-sans text-[10px] font-bold text-white/60 bg-[#0e0e1a] px-2 py-0.5 rounded shrink-0">
                               E{String(ep.episode_number).padStart(2, '0')}
                             </span>
-                            <span className="font-sans font-semibold text-sm text-[#eeeef5] leading-snug truncate">
+                            <span className="font-sans font-semibold text-sm text-white leading-snug truncate">
                               {ep.name}
                             </span>
                             {ep.vote_average > 0 && (
@@ -743,14 +877,14 @@ export const DetailPage: React.FC = () => {
                           </div>
 
                           {/* Air date + runtime */}
-                          <div className="flex items-center gap-3 text-[11px] text-[#5a5a72]">
+                          <div className="flex items-center gap-3 text-[11px] text-white/60">
                             {ep.air_date && <span>{ep.air_date}</span>}
                             {ep.runtime && <span>{ep.runtime} min</span>}
                           </div>
 
                           {/* Overview */}
                           {ep.overview && (
-                            <p className="font-sans text-xs text-[#9898b0] leading-relaxed line-clamp-2 mt-0.5">
+                            <p className="font-sans text-xs text-[#a0a0b8] leading-relaxed line-clamp-2 mt-0.5">
                               {ep.overview}
                             </p>
                           )}
@@ -763,7 +897,7 @@ export const DetailPage: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <p className="px-5 py-4 text-xs text-[#5a5a72] font-sans">No episode data available.</p>
+                <p className="px-5 py-4 text-xs text-white/60 font-sans">No episode data available.</p>
               )}
             </motion.div>
           )}
@@ -772,7 +906,7 @@ export const DetailPage: React.FC = () => {
         {/* YOU MAY ALSO LIKE SECTION */}
         {data.similar?.results && data.similar.results.length > 0 && (
           <motion.section variants={itemVariants}>
-            <h2 className="font-sans font-medium text-[11px] uppercase tracking-[0.14em] text-[#5a5a72] mb-4">
+            <h2 className="font-sans font-medium text-xs uppercase tracking-[0.15em] font-semibold text-white/60 mb-4">
               YOU MAY ALSO LIKE
             </h2>
             <div className="flex overflow-x-auto gap-2.5 sm:gap-3.5 pb-3 no-scrollbar snap-x snap-mandatory">
@@ -798,7 +932,7 @@ export const DetailPage: React.FC = () => {
                         className="w-full h-full object-cover block"
                       />
                     ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-[#5a5a72] p-3 text-center">
+                      <div className="w-full h-full flex flex-col items-center justify-center text-white/60 p-3 text-center">
                         <span className="text-xs font-sans">{simTitle}</span>
                       </div>
                     )}
@@ -819,7 +953,7 @@ export const DetailPage: React.FC = () => {
                           {simTitle}
                         </h3>
                         {simVote !== undefined && simVote > 0 && (
-                          <div className="flex items-center gap-1 text-[#9898b0] font-sans text-[11px]">
+                          <div className="flex items-center gap-1 text-[#a0a0b8] font-sans text-[11px]">
                             <Star fill="#f5c518" stroke="none" size={12} />
                             <span>{simVote.toFixed(1)}</span>
                           </div>
