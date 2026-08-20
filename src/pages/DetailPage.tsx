@@ -56,6 +56,15 @@ export const DetailPage: React.FC = () => {
     enabled: !!apiKey && !!tmdb && type === 'tv' && activeTab === 'seasons',
   });
 
+  const { data: previewSeasonData } = useQuery({
+    queryKey: ['season-preview', id, 1],
+    queryFn: () => tmdb!.getTVSeason(id, 1),
+    enabled: !!apiKey && !!tmdb && type === 'tv',
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const previewEpisodes = previewSeasonData?.episodes?.slice(0, 8) ?? [];
+
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
     setShowCopied(true);
@@ -558,6 +567,86 @@ export const DetailPage: React.FC = () => {
           </div>
           <div className="border-t border-[rgba(255,255,255,0.06)] mt-8 sm:mt-10 w-full" />
         </motion.section>
+
+        {type === 'tv' && previewEpisodes.length > 0 && activeTab === 'overview' && (
+          <motion.section variants={itemVariants}>
+        
+            {/* Section header */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-sans font-medium text-[11px] uppercase tracking-[0.14em] text-[#5a5a72]">
+                Episodes
+              </h2>
+              <button
+                onClick={() => {
+                  setActiveTab('seasons');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="font-sans text-[11px] text-[#5a5a72] hover:text-[var(--color-accent)] transition-colors uppercase tracking-wider cursor-pointer"
+              >
+                See All →
+              </button>
+            </div>
+        
+            {/* Horizontal scroll strip */}
+            <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide -mx-1 px-1">
+              {previewEpisodes.map((ep: any) => (
+                <div
+                  key={ep.id}
+                  className="shrink-0 w-[260px] sm:w-[280px] snap-start flex flex-col gap-2 group"
+                >
+                  {/* Thumbnail with runtime badge overlay */}
+                  <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-[#0e0e1a]">
+                    {ep.still_path ? (
+                      <img
+                        src={`https://image.tmdb.org/t/p/w400${ep.still_path}`}
+                        alt={ep.name}
+                        className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[#3a3a52]">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M4 4h16v16H4z" opacity=".2"/>
+                          <path d="M18 4H6L4 6v12l2 2h12l2-2V6l-2-2zM6 18V6h12v12H6z"/>
+                        </svg>
+                      </div>
+                    )}
+        
+                    {/* Dark gradient at bottom for text readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+        
+                    {/* Runtime badge — bottom right */}
+                    {ep.runtime && (
+                      <span className="absolute bottom-2 right-2 font-sans text-[10px] font-semibold text-white bg-black/70 px-1.5 py-0.5 rounded">
+                        {Math.floor(ep.runtime / 60) > 0
+                          ? `${Math.floor(ep.runtime / 60)}h ${ep.runtime % 60}m`
+                          : `${ep.runtime}m`}
+                      </span>
+                    )}
+        
+                    {/* Episode number badge — bottom left */}
+                    <span className="absolute bottom-2 left-2 font-sans text-[10px] font-bold text-white/60">
+                      E{String(ep.episode_number).padStart(2, '0')}
+                    </span>
+                  </div>
+        
+                  {/* Episode title */}
+                  <div className="flex flex-col gap-0.5 px-0.5">
+                    <span className="font-sans font-semibold text-xs text-[#eeeef5] leading-snug line-clamp-1">
+                      {ep.name}
+                    </span>
+                    {/* Overview */}
+                    {ep.overview && (
+                      <p className="font-sans text-[11px] text-[#9898b0] leading-relaxed line-clamp-2">
+                        {ep.overview}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-[rgba(255,255,255,0.06)] mt-8 sm:mt-10 w-full" />
+          </motion.section>
+        )}
 
         {/* KEYWORDS */}
         {keywords.length > 0 && (
