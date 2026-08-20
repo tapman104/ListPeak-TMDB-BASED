@@ -35,7 +35,8 @@ export const DetailPage: React.FC = () => {
   const apiKey = useKeyStore((state) => state.apiKey);
   
   const [showCopied, setShowCopied] = useState(false);
-  const [openSeason, setOpenSeason] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'seasons'>('overview');
+  const [selectedSeason, setSelectedSeason] = useState(1);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -50,9 +51,9 @@ export const DetailPage: React.FC = () => {
   });
 
   const { data: seasonData, isLoading: seasonLoading } = useQuery({
-    queryKey: ['season', id, openSeason],
-    queryFn: () => tmdb!.getTVSeason(id, openSeason!),
-    enabled: !!apiKey && !!tmdb && type === 'tv' && openSeason !== null,
+    queryKey: ['season', id, selectedSeason],
+    queryFn: () => tmdb!.getTVSeason(id, selectedSeason),
+    enabled: !!apiKey && !!tmdb && type === 'tv' && activeTab === 'seasons',
   });
 
   const handleShare = () => {
@@ -135,6 +136,7 @@ export const DetailPage: React.FC = () => {
   const numEpisodes = data.number_of_episodes;
   // @ts-ignore
   const numSeasons = data.number_of_seasons;
+  const seasons = data.seasons;
 
   const director = type === 'movie' ? data.credits?.crew?.find(c => c.job === 'Director') : null;
   const trailer = data.videos?.results?.find(v => v.type === 'Trailer' && v.site === 'YouTube');
@@ -378,7 +380,31 @@ export const DetailPage: React.FC = () => {
         className="w-full max-w-[1000px] mx-auto px-4 sm:px-8 md:px-12 pt-6 md:pt-10 pb-12 flex flex-col gap-8 sm:gap-10 md:gap-12"
       >
         
-        {/* OVERVIEW SECTION */}
+        {type === 'tv' && seasons && seasons.length > 0 && (
+          <div className="flex gap-1 border-b border-[rgba(255,255,255,0.07)] mb-8">
+            {(['overview', 'seasons'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`
+                  font-sans text-xs font-semibold uppercase tracking-[0.12em] px-4 py-2.5
+                  border-b-2 -mb-px transition-colors
+                  ${activeTab === tab
+                    ? 'border-[var(--color-accent)] text-[#eeeef5]'
+                    : 'border-transparent text-[#5a5a72] hover:text-[#9898b0]'}
+                `}
+              >
+                {tab === 'overview' ? 'Overview' : 'Seasons'}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <>
+          {(activeTab === 'overview' || type !== 'tv') && (
+            <motion.div variants={containerVariants} initial="hidden" animate="show" className="flex flex-col gap-8 sm:gap-10 md:gap-12">
+        
+              {/* OVERVIEW SECTION */}
         {data.overview && (
           <motion.section variants={itemVariants}>
             <h2 className="font-sans font-medium text-[11px] uppercase tracking-[0.14em] text-[#5a5a72] mb-3">
@@ -553,118 +579,106 @@ export const DetailPage: React.FC = () => {
           </motion.section>
         )}
 
-        {/* SEASONS & EPISODES — TV only */}
-        {type === 'tv' && numSeasons > 0 && (
-          <motion.section variants={itemVariants}>
-            <h2 className="font-sans font-medium text-[11px] uppercase tracking-[0.14em] text-[#5a5a72] mb-4">
-              SEASONS & EPISODES
-            </h2>
-            <div className="flex flex-col gap-2">
-              {Array.from({ length: numSeasons }, (_, i) => i + 1).map((seasonNum) => {
-                const isOpen = openSeason === seasonNum;
-                return (
-                  <div key={seasonNum} className="rounded-xl border border-[rgba(255,255,255,0.07)] overflow-hidden bg-[#0e0e1a]">
-                    {/* Season Header — clickable */}
+            </motion.div>
+          )}
+
+          {activeTab === 'seasons' && type === 'tv' && (
+            <motion.div variants={containerVariants} initial="hidden" animate="show" className="flex flex-col gap-8">
+              {seasons && seasons.length > 1 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {seasons.map((s: any) => (
                     <button
-                      onClick={() => setOpenSeason(isOpen ? null : seasonNum)}
-                      className="w-full flex items-center justify-between px-4 sm:px-5 py-3.5 text-left cursor-pointer hover:bg-[rgba(255,255,255,0.04)] transition-colors"
+                      key={s.id}
+                      onClick={() => setSelectedSeason(s.season_number)}
+                      className={`font-sans text-xs font-semibold px-4 py-1.5 rounded-full border transition-colors
+                        ${selectedSeason === s.season_number
+                          ? 'bg-[var(--color-accent)] border-[var(--color-accent)] text-black'
+                          : 'border-[rgba(255,255,255,0.12)] text-[#9898b0] hover:border-white/30 hover:text-[#eeeef5]'
+                        }`}
                     >
-                      <span className="font-sans font-semibold text-sm text-[#eeeef5]">
-                        Season {seasonNum}
-                      </span>
-                      {isOpen ? (
-                        <ChevronUp size={16} className="text-[#5a5a72] shrink-0" />
-                      ) : (
-                        <ChevronDown size={16} className="text-[#5a5a72] shrink-0" />
-                      )}
+                      Season {s.season_number}
                     </button>
+                  ))}
+                </div>
+              )}
 
-                    {/* Episode List */}
-                    {isOpen && (
-                      <div className="border-t border-[rgba(255,255,255,0.06)]">
-                        {seasonLoading ? (
-                          <div className="flex flex-col gap-0">
-                            {Array.from({ length: 4 }).map((_, i) => (
-                              <div key={i} className="flex gap-3 px-4 sm:px-5 py-3 border-b border-[rgba(255,255,255,0.04)] last:border-0">
-                                <div className="w-28 sm:w-36 aspect-video rounded-lg bg-[#1c1c2e] animate-shimmer shrink-0" />
-                                <div className="flex-1 flex flex-col gap-2 justify-center">
-                                  <div className="h-3.5 w-2/3 rounded bg-[#1c1c2e] animate-shimmer" />
-                                  <div className="h-3 w-full rounded bg-[#1c1c2e] animate-shimmer" />
-                                  <div className="h-3 w-4/5 rounded bg-[#1c1c2e] animate-shimmer" />
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : seasonData?.episodes?.length ? (
-                          <div className="flex flex-col">
-                            {seasonData.episodes.map((ep) => (
-                              <div
-                                key={ep.id}
-                                className="flex gap-3 sm:gap-4 px-4 sm:px-5 py-3 sm:py-3.5 border-b border-[rgba(255,255,255,0.04)] last:border-0 hover:bg-[rgba(255,255,255,0.02)] transition-colors"
-                              >
-                                {/* Still thumbnail */}
-                                <div className="w-28 sm:w-36 aspect-video rounded-lg overflow-hidden bg-[#141420] shrink-0">
-                                  {ep.still_path ? (
-                                    <img
-                                      src={`${TMDB_IMAGE_BASE}w300${ep.still_path}`}
-                                      alt={ep.name}
-                                      loading="lazy"
-                                      className="w-full h-full object-cover block"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-[#5a5a72]">
-                                      <Play size={18} />
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Episode info */}
-                                <div className="flex flex-col gap-1 min-w-0 flex-1 justify-center">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="font-sans font-semibold text-xs sm:text-sm text-[#eeeef5] truncate">
-                                      {ep.episode_number}. {ep.name}
-                                    </span>
-                                    {ep.vote_average > 0 && (
-                                      <span className="font-sans text-[10px] text-[#4ade80] font-semibold shrink-0">
-                                        ★ {ep.vote_average.toFixed(1)}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-3 text-[10px] sm:text-[11px] text-[#5a5a72] font-sans flex-wrap">
-                                    {ep.air_date && (
-                                      <span className="flex items-center gap-1">
-                                        <Calendar size={10} />
-                                        {ep.air_date}
-                                      </span>
-                                    )}
-                                    {ep.runtime && (
-                                      <span className="flex items-center gap-1">
-                                        <Clock size={10} />
-                                        {ep.runtime}m
-                                      </span>
-                                    )}
-                                  </div>
-                                  {ep.overview && (
-                                    <p className="font-sans text-[11px] sm:text-xs text-[#9898b0] leading-relaxed line-clamp-2 mt-0.5">
-                                      {ep.overview}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="px-5 py-4 text-xs text-[#5a5a72] font-sans">No episode data available.</p>
-                        )}
+              {seasonLoading ? (
+                <div className="flex flex-col gap-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="flex gap-4 p-3 rounded-xl">
+                      <div className="shrink-0 w-40 sm:w-48 aspect-video rounded-lg bg-[#1c1c2e] animate-shimmer" />
+                      <div className="flex-1 flex flex-col justify-center gap-2">
+                        <div className="h-4 w-1/3 rounded bg-[#1c1c2e] animate-shimmer" />
+                        <div className="h-3 w-1/4 rounded bg-[#1c1c2e] animate-shimmer" />
+                        <div className="h-3 w-full rounded bg-[#1c1c2e] animate-shimmer mt-2" />
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <div className="border-t border-[rgba(255,255,255,0.06)] mt-8 sm:mt-10 w-full" />
-          </motion.section>
-        )}
+                    </div>
+                  ))}
+                </div>
+              ) : seasonData?.episodes?.length ? (
+                <div className="flex flex-col">
+                  {seasonData.episodes.map((ep, index) => (
+                    <React.Fragment key={ep.id}>
+                      <div className="flex gap-4 p-3 rounded-xl hover:bg-[rgba(255,255,255,0.03)] transition-colors group">
+                        {/* Still thumbnail */}
+                        <div className="shrink-0 w-40 sm:w-48 aspect-video rounded-lg overflow-hidden bg-[#0e0e1a]">
+                          {ep.still_path
+                            ? <img
+                                src={`https://image.tmdb.org/t/p/w300${ep.still_path}`}
+                                alt={ep.name}
+                                className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
+                              />
+                            : <div className="w-full h-full flex items-center justify-center text-[#3a3a52]">
+                                <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M4 4h16v16H4z" opacity=".3"/><path d="M18 4H6L4 6v12l2 2h12l2-2V6l-2-2zM6 18V6h12v12H6z"/>
+                                </svg>
+                              </div>
+                          }
+                        </div>
+
+                        {/* Episode info */}
+                        <div className="flex flex-col justify-center gap-1 min-w-0">
+                          {/* Number badge + title row */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-sans text-[10px] font-bold text-[#5a5a72] bg-[#0e0e1a] px-2 py-0.5 rounded shrink-0">
+                              E{String(ep.episode_number).padStart(2, '0')}
+                            </span>
+                            <span className="font-sans font-semibold text-sm text-[#eeeef5] leading-snug truncate">
+                              {ep.name}
+                            </span>
+                            {ep.vote_average > 0 && (
+                              <span className="font-sans text-[10px] font-semibold text-[#4ade80] bg-[#0e1a0e] px-2 py-0.5 rounded-full shrink-0">
+                                ★ {ep.vote_average.toFixed(1)}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Air date + runtime */}
+                          <div className="flex items-center gap-3 text-[11px] text-[#5a5a72]">
+                            {ep.air_date && <span>{ep.air_date}</span>}
+                            {ep.runtime && <span>{ep.runtime} min</span>}
+                          </div>
+
+                          {/* Overview */}
+                          {ep.overview && (
+                            <p className="font-sans text-xs text-[#9898b0] leading-relaxed line-clamp-2 mt-0.5">
+                              {ep.overview}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {index < seasonData.episodes.length - 1 && (
+                        <div className="border-t border-[rgba(255,255,255,0.04)] mx-3" />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+              ) : (
+                <p className="px-5 py-4 text-xs text-[#5a5a72] font-sans">No episode data available.</p>
+              )}
+            </motion.div>
+          )}
+        </>
 
         {/* YOU MAY ALSO LIKE SECTION */}
         {data.similar?.results && data.similar.results.length > 0 && (

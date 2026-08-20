@@ -100,6 +100,16 @@ export interface TMDBDetail {
   spoken_languages?: { english_name: string; iso_639_1: string }[];
   production_companies?: { id: number; name: string; logo_path: string | null }[];
   popularity?: number;
+  seasons?: {
+    air_date: string | null;
+    episode_count: number;
+    id: number;
+    name: string;
+    overview: string;
+    poster_path: string | null;
+    season_number: number;
+    vote_average: number;
+  }[];
 }
 
 export interface TMDBSeason {
