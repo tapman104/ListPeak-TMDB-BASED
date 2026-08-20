@@ -17,7 +17,7 @@ export const Footer: React.FC = () => {
             >
               <KeyRound className="text-[var(--color-accent)]" size={20} />
               <span className="font-display font-bold text-[var(--color-text-primary)] text-2xl tracking-[0.06em]">
-                CINEKEY
+                ListPeak
               </span>
             </div>
             <p className="text-xs sm:text-sm text-[var(--color-text-muted)] leading-relaxed max-w-xs">
@@ -93,7 +93,7 @@ export const Footer: React.FC = () => {
         {/* Bottom copyright */}
         <div className="pt-6 sm:pt-8 border-t border-[var(--color-border-subtle)] flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left text-[11px] sm:text-xs">
           <p>
-            © {new Date().getFullYear()} CineKey. Powered by TMDb API. This product uses the TMDB API but is not endorsed or certified by TMDB.
+            © {new Date().getFullYear()} ListPeak. Powered by TMDb API. This product uses the TMDB API but is not endorsed or certified by TMDB.
           </p>
           <div className="flex items-center gap-1 text-[var(--color-text-muted)]">
             Built with <Heart size={12} className="text-[var(--color-accent)] fill-[var(--color-accent)]" /> for cinema lovers

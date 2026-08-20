@@ -60,11 +60,11 @@ export const Navbar: React.FC = () => {
                 setMobileMenuOpen(false);
                 navigate({ to: '/' });
               }}
-              aria-label="CineKey Home"
+              aria-label="ListPeak Home"
             >
               <KeyRound className="text-[var(--color-accent)] shrink-0" size={20} />
               <span className="font-display font-bold text-[var(--color-text-primary)] text-xl sm:text-2xl tracking-[0.06em] mt-0.5">
-                CINEKEY
+                ListPeak
               </span>
             </button>
 

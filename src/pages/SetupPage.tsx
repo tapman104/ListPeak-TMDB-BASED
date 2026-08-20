@@ -46,7 +46,7 @@ export const SetupPage: React.FC = () => {
           <div className="w-12 h-12 bg-[var(--color-accent-dim)] rounded-full flex items-center justify-center mb-3 sm:mb-4">
             <KeyRound className="text-[var(--color-accent)]" size={24} />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-display tracking-wide mb-1 sm:mb-2 text-white">CineKey</h1>
+          <h1 className="text-2xl sm:text-3xl font-display tracking-wide mb-1 sm:mb-2 text-white">ListPeak</h1>
           <p className="text-[var(--color-text-muted)] text-center text-xs sm:text-sm">
             Your key, your data. Nothing leaves your browser.
           </p>

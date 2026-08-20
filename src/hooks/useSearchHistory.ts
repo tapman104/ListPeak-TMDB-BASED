@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const STORAGE_KEY = 'cinekey_search_history';
+const STORAGE_KEY = 'listpeak_search_history';
 const MAX_HISTORY = 8;
 
 export const useSearchHistory = () => {

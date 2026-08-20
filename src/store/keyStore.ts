@@ -15,7 +15,7 @@ export const useKeyStore = create<KeyStore>()(
       clearApiKey: () => set({ apiKey: null }),
     }),
     {
-      name: 'cinekey_tmdb_key',
+      name: 'listpeak_tmdb_key',
     }
   )
 );
