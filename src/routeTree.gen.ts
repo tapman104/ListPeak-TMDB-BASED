@@ -14,6 +14,7 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as DetailIdRouteImport } from './routes/detail.$id'
 import { Route as PersonIdRouteImport } from './routes/person.$id'
+import { Route as DetailIdCastRouteImport } from './routes/detail.$id.cast'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,42 +41,69 @@ const PersonIdRoute = PersonIdRouteImport.update({
   path: '/person/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DetailIdCastRoute = DetailIdCastRouteImport.update({
+  id: '/cast',
+  path: '/cast',
+  getParentRoute: () => DetailIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
-  '/detail/$id': typeof DetailIdRoute
+  '/detail/$id': typeof DetailIdRouteWithChildren
   '/person/$id': typeof PersonIdRoute
+  '/detail/$id/cast': typeof DetailIdCastRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
-  '/detail/$id': typeof DetailIdRoute
+  '/detail/$id': typeof DetailIdRouteWithChildren
   '/person/$id': typeof PersonIdRoute
+  '/detail/$id/cast': typeof DetailIdCastRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
-  '/detail/$id': typeof DetailIdRoute
+  '/detail/$id': typeof DetailIdRouteWithChildren
   '/person/$id': typeof PersonIdRoute
+  '/detail/$id/cast': typeof DetailIdCastRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/search' | '/setup' | '/detail/$id' | '/person/$id'
+  fullPaths:
+    | '/'
+    | '/search'
+    | '/setup'
+    | '/detail/$id'
+    | '/person/$id'
+    | '/detail/$id/cast'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/search' | '/setup' | '/detail/$id' | '/person/$id'
-  id: '__root__' | '/' | '/search' | '/setup' | '/detail/$id' | '/person/$id'
+  to:
+    | '/'
+    | '/search'
+    | '/setup'
+    | '/detail/$id'
+    | '/person/$id'
+    | '/detail/$id/cast'
+  id:
+    | '__root__'
+    | '/'
+    | '/search'
+    | '/setup'
+    | '/detail/$id'
+    | '/person/$id'
+    | '/detail/$id/cast'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SearchRoute: typeof SearchRoute
   SetupRoute: typeof SetupRoute
-  DetailIdRoute: typeof DetailIdRoute
+  DetailIdRoute: typeof DetailIdRouteWithChildren
   PersonIdRoute: typeof PersonIdRoute
 }
 
@@ -116,14 +144,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PersonIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/detail/$id/cast': {
+      id: '/detail/$id/cast'
+      path: '/cast'
+      fullPath: '/detail/$id/cast'
+      preLoaderRoute: typeof DetailIdCastRouteImport
+      parentRoute: typeof DetailIdRoute
+    }
   }
 }
+
+interface DetailIdRouteChildren {
+  DetailIdCastRoute: typeof DetailIdCastRoute
+}
+
+const DetailIdRouteChildren: DetailIdRouteChildren = {
+  DetailIdCastRoute: DetailIdCastRoute,
+}
+
+const DetailIdRouteWithChildren = DetailIdRoute._addFileChildren(
+  DetailIdRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SearchRoute: SearchRoute,
   SetupRoute: SetupRoute,
-  DetailIdRoute: DetailIdRoute,
+  DetailIdRoute: DetailIdRouteWithChildren,
   PersonIdRoute: PersonIdRoute,
 }
 export const routeTree = rootRouteImport

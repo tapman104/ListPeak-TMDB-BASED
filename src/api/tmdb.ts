@@ -221,6 +221,10 @@ export const createTMDBClient = (apiKey: string) => {
       ),
     getTVSeason: (id: string, seasonNumber: number) =>
       fetchTMDB<TMDBSeason>(`/tv/${id}/season/${seasonNumber}`),
+    getTVCredits: (id: string | number) =>
+      fetchTMDB<{ cast: any[]; crew: any[] }>(`/tv/${id}/credits`),
+    getMovieCredits: (id: string | number) =>
+      fetchTMDB<{ cast: any[]; crew: any[] }>(`/movie/${id}/credits`),
     getPersonDetails: (id: number) => fetchTMDB<PersonDetail>(`/person/${id}?append_to_response=combined_credits,images`),
     getPersonCredits: (id: number) => fetchTMDB<{ cast: PersonCredit[]; crew?: PersonCredit[] }>(`/person/${id}/combined_credits`),
     getPersonImages: (id: number) => fetchTMDB<{ profiles: { file_path: string }[] }>(`/person/${id}/images`),

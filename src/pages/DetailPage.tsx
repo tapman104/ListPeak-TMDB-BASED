@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useSearch, useNavigate } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
@@ -37,6 +37,23 @@ export const DetailPage: React.FC = () => {
   const [showCopied, setShowCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'seasons'>('overview');
   const [selectedSeason, setSelectedSeason] = useState(1);
+
+  const castScrollRef = useRef<HTMLDivElement>(null);
+  const [castScrollIndex, setCastScrollIndex] = useState(0);
+
+  const CAST_CARD_WIDTH = 88; // px — approx card + gap width
+
+  const handleCastScroll = () => {
+    if (!castScrollRef.current) return;
+    const index = Math.round(castScrollRef.current.scrollLeft / CAST_CARD_WIDTH);
+    setCastScrollIndex(index);
+  };
+
+  const scrollCastTo = (direction: 'left' | 'right') => {
+    if (!castScrollRef.current) return;
+    const delta = direction === 'right' ? CAST_CARD_WIDTH * 3 : -CAST_CARD_WIDTH * 3;
+    castScrollRef.current.scrollBy({ left: delta, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -519,13 +536,15 @@ export const DetailPage: React.FC = () => {
         )}
 
         {/* TOP CAST SECTION */}
-        {data.credits?.cast && data.credits.cast.length > 0 && (
+        {data.credits?.cast && data.credits.cast.length > 0 && (() => {
+          const displayedCast = data.credits.cast.slice(0, 12);
+          return (
           <motion.section variants={itemVariants}>
-            <h2 className="font-sans font-medium text-xs uppercase tracking-[0.15em] font-semibold text-white/60 mb-4">
+            <h2 className="font-sans font-semibold text-xs uppercase tracking-[0.15em] text-white/60 mb-4">
               TOP CAST
             </h2>
-            <div className="flex overflow-x-auto gap-4 sm:gap-6 pb-3 no-scrollbar snap-x snap-mandatory">
-              {data.credits.cast.slice(0, 12).map(actor => (
+            <div ref={castScrollRef} onScroll={handleCastScroll} className="flex overflow-x-auto gap-4 sm:gap-6 pb-3 no-scrollbar snap-x snap-mandatory">
+              {displayedCast.map(actor => (
                 <div 
                   key={actor.id} 
                   className="w-20 sm:w-24 shrink-0 flex flex-col items-center gap-2 cursor-pointer snap-start group"
@@ -553,8 +572,72 @@ export const DetailPage: React.FC = () => {
                 </div>
               ))}
             </div>
+
+            {/* Scroll controls row */}
+            <div className="flex items-center justify-between mt-3">
+
+              {/* Dot indicators */}
+              <div className="flex gap-1.5">
+                {displayedCast.map((_: any, i: number) => {
+                  const dotsVisible = Math.min(displayedCast.length, 8);
+                  const dotIndex = Math.round(castScrollIndex / 1); // 1:1 mapping
+                  if (i >= dotsVisible) return null;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        if (!castScrollRef.current) return;
+                        castScrollRef.current.scrollTo({ left: i * CAST_CARD_WIDTH, behavior: 'smooth' });
+                      }}
+                      className={`rounded-full transition-all duration-200 ${
+                        i === Math.min(dotIndex, dotsVisible - 1)
+                          ? 'w-4 h-1.5 bg-[var(--color-accent)]'
+                          : 'w-1.5 h-1.5 bg-[#3a3a52]'
+                      }`}
+                      aria-label={`Go to cast member ${i + 1}`}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Right side: arrows + View All */}
+              <div className="flex items-center gap-3">
+                {/* Prev/Next arrow buttons */}
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => scrollCastTo('left')}
+                    className="w-6 h-6 rounded-full bg-[#1a1a2e] flex items-center justify-center text-[#5a5a72] hover:text-white/90 hover:bg-[#252540] transition-all"
+                    aria-label="Scroll cast left"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="15 18 9 12 15 6" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => scrollCastTo('right')}
+                    className="w-6 h-6 rounded-full bg-[#1a1a2e] flex items-center justify-center text-[#5a5a72] hover:text-white/90 hover:bg-[#252540] transition-all"
+                    aria-label="Scroll cast right"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* View All link */}
+                <button
+                  onClick={() => navigate({ to: '/detail/$id/cast', params: { id }, search: { type } })}
+                  className="font-sans text-[11px] text-white/60 hover:text-[var(--color-accent)] transition-colors uppercase tracking-[0.1em]"
+                >
+                  View All →
+                </button>
+              </div>
+
+            </div>
+
             </motion.section>
-        )}
+          );
+        })()}
 
         {/* DETAILS GRID SECTION */}
         <motion.section variants={itemVariants}>
