@@ -189,14 +189,16 @@ export const PersonPage: React.FC = () => {
 
   const { data: details, isLoading: isLoadingDetails, error: errorDetails } = useQuery({
     queryKey: ['person', personId],
-    queryFn: () => tmdb!.getPersonDetails(personId),
+    queryFn: ({ signal }) => tmdb!.getPersonDetails(personId, { signal }),
     enabled: !!tmdb && !isNaN(personId),
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: fallbackCredits, isLoading: isLoadingFallbackCredits } = useQuery({
     queryKey: ['person-credits', personId],
-    queryFn: () => tmdb!.getPersonCredits(personId),
+    queryFn: ({ signal }) => tmdb!.getPersonCredits(personId, { signal }),
     enabled: !!tmdb && !isNaN(personId) && !details?.combined_credits,
+    staleTime: 1000 * 60 * 10,
   });
 
   if (!apiKey) {

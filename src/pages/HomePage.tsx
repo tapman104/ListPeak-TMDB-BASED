@@ -17,20 +17,23 @@ export const HomePage: React.FC = () => {
 
   const { data: trendingWeek, isLoading: isLoadingWeek, error: errorWeek } = useQuery({
     queryKey: ['trending-week'],
-    queryFn: () => tmdb!.getTrendingWeek(),
+    queryFn: ({ signal }) => tmdb!.getTrendingWeek({ signal }),
     enabled: !!apiKey,
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: popularMovies, isLoading: isLoadingPopular } = useQuery({
     queryKey: ['popular-movies'],
-    queryFn: () => tmdb!.getPopularMovies(),
-    enabled: !!apiKey,
+    queryFn: ({ signal }) => tmdb!.getPopularMovies({ signal }),
+    enabled: !!apiKey && !!trendingWeek, // Stagger after trending
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: topRatedSeries, isLoading: isLoadingSeries } = useQuery({
     queryKey: ['top-rated-series'],
-    queryFn: () => tmdb!.getTopRatedSeries(),
-    enabled: !!apiKey,
+    queryFn: ({ signal }) => tmdb!.getTopRatedSeries({ signal }),
+    enabled: !!apiKey && !!popularMovies, // Stagger after popular
+    staleTime: 1000 * 60 * 5,
   });
 
   if (!apiKey) {

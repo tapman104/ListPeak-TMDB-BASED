@@ -192,9 +192,9 @@ export interface TMDBGenre {
 export type SearchResultItem = (TMDBMedia & { media_type?: 'movie' | 'tv' }) | (TMDBPerson & { media_type: 'person' });
 
 export const createTMDBClient = (apiKey: string) => {
-  const fetchTMDB = async <T>(endpoint: string): Promise<T> => {
+  const fetchTMDB = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
     const separator = endpoint.includes('?') ? '&' : '?';
-    const response = await throttledFetch(`${BASE_URL}${endpoint}${separator}api_key=${apiKey}&language=en-US`);
+    const response = await throttledFetch(`${BASE_URL}${endpoint}${separator}api_key=${apiKey}&language=en-US`, init);
     if (!response.ok) {
       if (response.status === 401) {
         throw new Error('API key invalid or expired');
@@ -205,52 +205,52 @@ export const createTMDBClient = (apiKey: string) => {
   };
 
   return {
-    verifyKey: async () => {
-      const response = await throttledFetch(`${BASE_URL}/authentication?api_key=${apiKey}`);
+    verifyKey: async (init?: RequestInit) => {
+      const response = await throttledFetch(`${BASE_URL}/authentication?api_key=${apiKey}`, init);
       if (!response.ok) {
         throw new Error('Invalid key');
       }
       return response.json();
     },
-    getTrendingWeek: () => fetchTMDB<TMDBResponse<TMDBMedia>>('/trending/all/week'),
-    getPopularMovies: () => fetchTMDB<TMDBResponse<TMDBMedia>>('/movie/popular'),
-    getTopRatedSeries: () => fetchTMDB<TMDBResponse<TMDBMedia>>('/tv/top_rated'),
-    getMediaDetails: (id: string, type: 'movie' | 'tv') => 
+    getTrendingWeek: (init?: RequestInit) => fetchTMDB<TMDBResponse<TMDBMedia>>('/trending/all/week', init),
+    getPopularMovies: (init?: RequestInit) => fetchTMDB<TMDBResponse<TMDBMedia>>('/movie/popular', init),
+    getTopRatedSeries: (init?: RequestInit) => fetchTMDB<TMDBResponse<TMDBMedia>>('/tv/top_rated', init),
+    getMediaDetails: (id: string, type: 'movie' | 'tv', init?: RequestInit) => 
       fetchTMDB<TMDBDetail>(
-        `/${type}/${id}?append_to_response=credits,videos,similar,content_ratings,watch/providers,keywords,release_dates`
+        `/${type}/${id}?append_to_response=credits,videos,similar,content_ratings,watch/providers,keywords,release_dates`, init
       ),
-    getTVSeason: (id: string, seasonNumber: number) =>
-      fetchTMDB<TMDBSeason>(`/tv/${id}/season/${seasonNumber}`),
-    getTVCredits: (id: string | number) =>
-      fetchTMDB<{ cast: any[]; crew: any[] }>(`/tv/${id}/credits`),
-    getMovieCredits: (id: string | number) =>
-      fetchTMDB<{ cast: any[]; crew: any[] }>(`/movie/${id}/credits`),
-    getPersonDetails: (id: number) => fetchTMDB<PersonDetail>(`/person/${id}?append_to_response=combined_credits,images`),
-    getPersonCredits: (id: number) => fetchTMDB<{ cast: PersonCredit[]; crew?: PersonCredit[] }>(`/person/${id}/combined_credits`),
-    getPersonImages: (id: number) => fetchTMDB<{ profiles: { file_path: string }[] }>(`/person/${id}/images`),
-    getMovieGenres: () => fetchTMDB<{ genres: TMDBGenre[] }>('/genre/movie/list'),
-    getTVGenres: () => fetchTMDB<{ genres: TMDBGenre[] }>('/genre/tv/list'),
-    searchMulti: (query: string, page = 1) => 
-      fetchTMDB<TMDBResponse<SearchResultItem>>(`/search/multi?query=${encodeURIComponent(query)}&page=${page}`),
-    searchMovies: (query: string, page = 1, options?: { primary_release_year?: string | number; year?: string | number }) => {
+    getTVSeason: (id: string, seasonNumber: number, init?: RequestInit) =>
+      fetchTMDB<TMDBSeason>(`/tv/${id}/season/${seasonNumber}`, init),
+    getTVCredits: (id: string | number, init?: RequestInit) =>
+      fetchTMDB<{ cast: any[]; crew: any[] }>(`/tv/${id}/credits`, init),
+    getMovieCredits: (id: string | number, init?: RequestInit) =>
+      fetchTMDB<{ cast: any[]; crew: any[] }>(`/movie/${id}/credits`, init),
+    getPersonDetails: (id: number, init?: RequestInit) => fetchTMDB<PersonDetail>(`/person/${id}?append_to_response=combined_credits,images`, init),
+    getPersonCredits: (id: number, init?: RequestInit) => fetchTMDB<{ cast: PersonCredit[]; crew?: PersonCredit[] }>(`/person/${id}/combined_credits`, init),
+    getPersonImages: (id: number, init?: RequestInit) => fetchTMDB<{ profiles: { file_path: string }[] }>(`/person/${id}/images`, init),
+    getMovieGenres: (init?: RequestInit) => fetchTMDB<{ genres: TMDBGenre[] }>('/genre/movie/list', init),
+    getTVGenres: (init?: RequestInit) => fetchTMDB<{ genres: TMDBGenre[] }>('/genre/tv/list', init),
+    searchMulti: (query: string, page = 1, init?: RequestInit) => 
+      fetchTMDB<TMDBResponse<SearchResultItem>>(`/search/multi?query=${encodeURIComponent(query)}&page=${page}`, init),
+    searchMovies: (query: string, page = 1, options?: { primary_release_year?: string | number; year?: string | number }, init?: RequestInit) => {
       let url = `/search/movie?query=${encodeURIComponent(query)}&page=${page}`;
       if (options?.primary_release_year) {
         url += `&primary_release_year=${options.primary_release_year}`;
       } else if (options?.year) {
         url += `&year=${options.year}`;
       }
-      return fetchTMDB<TMDBResponse<TMDBMedia>>(url);
+      return fetchTMDB<TMDBResponse<TMDBMedia>>(url, init);
     },
-    searchTV: (query: string, page = 1, options?: { first_air_date_year?: string | number; year?: string | number }) => {
+    searchTV: (query: string, page = 1, options?: { first_air_date_year?: string | number; year?: string | number }, init?: RequestInit) => {
       let url = `/search/tv?query=${encodeURIComponent(query)}&page=${page}`;
       if (options?.first_air_date_year) {
         url += `&first_air_date_year=${options.first_air_date_year}`;
       } else if (options?.year) {
         url += `&year=${options.year}`;
       }
-      return fetchTMDB<TMDBResponse<TMDBMedia>>(url);
+      return fetchTMDB<TMDBResponse<TMDBMedia>>(url, init);
     },
-    searchPeople: (query: string, page = 1) => 
-      fetchTMDB<TMDBResponse<TMDBPerson>>(`/search/person?query=${encodeURIComponent(query)}&page=${page}`),
+    searchPeople: (query: string, page = 1, init?: RequestInit) => 
+      fetchTMDB<TMDBResponse<TMDBPerson>>(`/search/person?query=${encodeURIComponent(query)}&page=${page}`, init),
   };
 };

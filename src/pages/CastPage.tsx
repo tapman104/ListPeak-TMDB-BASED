@@ -23,11 +23,11 @@ export default function CastPage() {
 
   const { data: credits, isLoading } = useQuery({
     queryKey: ['credits', type, id],
-    queryFn: () =>
+    queryFn: ({ signal }) =>
       type === 'tv'
-        ? tmdb!.getTVCredits(id)
-        : tmdb!.getMovieCredits(id),
-    enabled: !!apiKey && !!tmdb && !!id,
+        ? tmdb!.getTVCredits(id, { signal })
+        : tmdb!.getMovieCredits(id, { signal }),
+    enabled: !!apiKey && !!tmdb && !!id && !!type,
     staleTime: 1000 * 60 * 10,
   });
 

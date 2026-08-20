@@ -63,27 +63,29 @@ export const DetailPage: React.FC = () => {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['detail', type, id],
-    queryFn: () => tmdb!.getMediaDetails(id, type),
-    enabled: !!apiKey && !!id && !!tmdb,
+    queryFn: ({ signal }) => tmdb!.getMediaDetails(id, type, { signal }),
+    enabled: !!apiKey && !!id && !!tmdb && !!type,
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: seasonData, isLoading: seasonLoading } = useQuery({
     queryKey: ['season', id, selectedSeason],
-    queryFn: () => tmdb!.getTVSeason(id, selectedSeason),
+    queryFn: ({ signal }) => tmdb!.getTVSeason(id, selectedSeason, { signal }),
     enabled: !!apiKey && !!tmdb && type === 'tv' && activeTab === 'seasons',
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: previewSeasonData } = useQuery({
-    queryKey: ['season-preview', id, 1],
-    queryFn: () => tmdb!.getTVSeason(id, 1),
-    enabled: !!apiKey && !!tmdb && type === 'tv',
+    queryKey: ['season', id, 1], // Deduplicate with seasonData when selectedSeason is 1
+    queryFn: ({ signal }) => tmdb!.getTVSeason(id, 1, { signal }),
+    enabled: !!apiKey && !!tmdb && type === 'tv' && !!data, // Stagger after detail
     staleTime: 1000 * 60 * 5,
   });
 
   const { data: creditsData, isLoading: creditsLoading } = useQuery({
     queryKey: ['credits', type, id],
-    queryFn: () => type === 'tv' ? tmdb!.getTVCredits(id) : tmdb!.getMovieCredits(id),
-    enabled: !!id && !!apiKey && !!tmdb,
+    queryFn: ({ signal }) => type === 'tv' ? tmdb!.getTVCredits(id, { signal }) : tmdb!.getMovieCredits(id, { signal }),
+    enabled: !!id && !!apiKey && !!tmdb && !!type && !!data, // Stagger after detail
     staleTime: 1000 * 60 * 10,
   });
 

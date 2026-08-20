@@ -59,14 +59,14 @@ export const SearchPage: React.FC = () => {
   // Fetch Genres
   const { data: movieGenresData } = useQuery({
     queryKey: ['movie-genres'],
-    queryFn: () => tmdb!.getMovieGenres(),
+    queryFn: ({ signal }) => tmdb!.getMovieGenres({ signal }),
     enabled: !!tmdb,
     staleTime: 1000 * 60 * 60,
   });
 
   const { data: tvGenresData } = useQuery({
     queryKey: ['tv-genres'],
-    queryFn: () => tmdb!.getTVGenres(),
+    queryFn: ({ signal }) => tmdb!.getTVGenres({ signal }),
     enabled: !!tmdb,
     staleTime: 1000 * 60 * 60,
   });
