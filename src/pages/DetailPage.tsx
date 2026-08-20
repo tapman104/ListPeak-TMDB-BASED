@@ -4,11 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import { 
   ArrowLeft, Star, Play, ThumbsUp, Minus, Heart, Share2, User, AlertCircle,
-  ChevronDown, ChevronUp, Calendar, Clock, Home, Search as SearchIcon
+  ChevronDown, ChevronUp, Calendar, Clock, Home, Search as SearchIcon, X
 } from 'lucide-react';
 import { useKeyStore } from '../store/keyStore';
 import { createTMDBClient } from '../api/tmdb';
 import { TMDB_IMAGE_BASE, TMDB_BACKDROP_SIZE, TMDB_POSTER_SIZE } from '../lib/constants';
+import { PosterCard } from '../components/PosterCard';
 
 // Define container and item variants for staggering motion
 const containerVariants = {
@@ -37,6 +38,28 @@ export const DetailPage: React.FC = () => {
   const [showCopied, setShowCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'seasons' | 'cast'>('overview');
   const [selectedSeason, setSelectedSeason] = useState(1);
+
+  // Search overlay state
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isSearchOpen) {
+        setIsSearchOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSearchOpen]);
 
   const castScrollRef = useRef<HTMLDivElement>(null);
   const [castScrollIndex, setCastScrollIndex] = useState(0);
@@ -87,6 +110,13 @@ export const DetailPage: React.FC = () => {
     queryFn: ({ signal }) => type === 'tv' ? tmdb!.getTVCredits(id, { signal }) : tmdb!.getMovieCredits(id, { signal }),
     enabled: !!id && !!apiKey && !!tmdb && !!type && !!data, // Stagger after detail
     staleTime: 1000 * 60 * 10,
+  });
+
+  const { data: searchResults, isLoading: searchLoading } = useQuery({
+    queryKey: ['search', debouncedSearchQuery],
+    queryFn: ({ signal }) => tmdb!.searchMulti(debouncedSearchQuery, 1, { signal }),
+    enabled: !!apiKey && !!tmdb && isSearchOpen && debouncedSearchQuery.length > 1,
+    staleTime: 1000 * 60 * 2,
   });
 
   const previewEpisodes = previewSeasonData?.episodes?.slice(0, 8) ?? [];
@@ -306,7 +336,7 @@ export const DetailPage: React.FC = () => {
           <Home size={18} />
         </button>
         <button 
-          onClick={() => navigate({ to: '/search' })}
+          onClick={() => setIsSearchOpen(true)}
           className="flex items-center justify-center w-11 h-11 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 hover:border-white/40 transition-all duration-200 cursor-pointer shadow-lg"
           title="Search"
           aria-label="Search"
@@ -1191,6 +1221,63 @@ export const DetailPage: React.FC = () => {
         )}
         
       </motion.div>
+
+      {/* Search Overlay */}
+      {isSearchOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col p-4 sm:p-8 animate-in fade-in duration-200">
+          <div className="w-full max-w-4xl mx-auto flex items-center gap-4 mb-8 shrink-0 mt-4">
+            <SearchIcon size={28} className="text-white/60 shrink-0" />
+            <input 
+              autoFocus
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 bg-transparent border-none outline-none text-2xl sm:text-3xl text-white font-sans font-medium placeholder-white/40"
+            />
+            <button 
+              onClick={() => setIsSearchOpen(false)}
+              className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors text-white shrink-0 cursor-pointer"
+            >
+              <X size={24} />
+            </button>
+          </div>
+          
+          <div className="w-full max-w-4xl mx-auto flex-1 overflow-y-auto no-scrollbar pb-20">
+            {searchLoading && debouncedSearchQuery.length > 1 && (
+              <div className="text-white/60 text-center mt-12 font-sans text-lg">Searching...</div>
+            )}
+            
+            {!searchLoading && searchResults?.results && searchResults.results.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {searchResults.results.map((item) => (
+                  <div key={item.id} onClick={() => {
+                    setIsSearchOpen(false);
+                    setSearchQuery('');
+                    setDebouncedSearchQuery('');
+                    if (item.media_type === 'movie' || item.media_type === 'tv') {
+                      navigate({ to: '/detail/$id', params: { id: item.id.toString() }, search: { type: item.media_type } });
+                    }
+                  }}>
+                    <PosterCard 
+                      id={item.id}
+                      title={item.title || item.name}
+                      posterPath={item.poster_path}
+                      mediaType={item.media_type as 'movie' | 'tv'}
+                      voteAverage={item.vote_average}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {!searchLoading && debouncedSearchQuery.length > 1 && searchResults?.results?.length === 0 && (
+              <div className="text-white/60 text-center mt-12 font-sans text-lg">No results found for "{debouncedSearchQuery}"</div>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
