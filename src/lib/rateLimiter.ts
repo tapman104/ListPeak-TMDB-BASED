@@ -15,10 +15,24 @@ export async function throttledFetch(
     timestamps.shift();
   }
 
+  if (options?.signal?.aborted) {
+    throw new DOMException('Aborted', 'AbortError');
+  }
+
   if (timestamps.length >= MAX_REQUESTS) {
     // Calculate how long to wait until the oldest request falls out of window
     const waitMs = timestamps[0] + WINDOW_MS - now + 50; // +50ms buffer
-    await new Promise(resolve => setTimeout(resolve, waitMs));
+    
+    await new Promise<void>((resolve, reject) => {
+      const timeoutId = setTimeout(resolve, waitMs);
+      if (options?.signal) {
+        options.signal.addEventListener('abort', () => {
+          clearTimeout(timeoutId);
+          reject(new DOMException('Aborted', 'AbortError'));
+        }, { once: true });
+      }
+    });
+    
     return throttledFetch(url, options); // retry after wait
   }
 
