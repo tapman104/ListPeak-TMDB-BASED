@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import { 
   ArrowLeft, Star, Play, ThumbsUp, Minus, Heart, Share2, User, AlertCircle,
-  ChevronDown, ChevronUp, Calendar, Clock, Home, Search as SearchIcon, X
+  Home, Search as SearchIcon, X
 } from 'lucide-react';
 import { useKeyStore } from '../store/keyStore';
 import { createTMDBClient } from '../api/tmdb';
@@ -261,14 +261,7 @@ export const DetailPage: React.FC = () => {
     return fmt(start);
   })();
 
-  // Aired on (weekdays)
-  const airedOn = (() => {
-    if (type !== 'tv') return null;
-    return (data as any).networks?.[0]?.origin_country === 'KR'
-      ? null // TMDB doesn't reliably return this; skip for KR shows
-      : null;
-    // Note: TMDB doesn't expose broadcast day reliably — omit this field
-  })();
+
 
   // Episode runtime
   const episodeRuntime = (() => {
@@ -1261,10 +1254,10 @@ export const DetailPage: React.FC = () => {
                   }}>
                     <PosterCard 
                       id={item.id}
-                      title={item.title || item.name}
-                      posterPath={item.poster_path}
+                      title={(item as any).title || item.name}
+                      posterPath={(item as any).poster_path}
                       mediaType={item.media_type as 'movie' | 'tv'}
-                      voteAverage={item.vote_average}
+                      voteAverage={(item as any).vote_average}
                     />
                   </div>
                 ))}
