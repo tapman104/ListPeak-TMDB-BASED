@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { KeyRound, Search, Bookmark, LogOut, Menu, X, Home, Film, Tv } from 'lucide-react';
+import { KeyRound, Search, Bookmark, LogOut, Menu, X, Home, Film, Tv, Sun, Moon } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useKeyStore } from '../store/keyStore';
+import { useThemeStore } from '../store/themeStore';
 import { useNavigate } from '@tanstack/react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { SearchAutocomplete } from './SearchAutocomplete';
 
 export const Navbar: React.FC = () => {
   const clearApiKey = useKeyStore((state) => state.clearApiKey);
+  const { theme, toggle: toggleTheme } = useThemeStore();
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -71,13 +73,7 @@ export const Navbar: React.FC = () => {
             {/* Desktop Navigation Links */}
             <div className="hidden md:flex items-center gap-6 text-sm font-sans font-medium text-[var(--color-text-muted)]">
               <button 
-                onClick={() => navigate({ to: '/' })}
-                className="hover:text-[var(--color-text-primary)] transition-colors py-2"
-              >
-                Home
-              </button>
-              <button 
-                onClick={() => navigate({ to: '/' })}
+                onClick={() => navigate({ to: '/trending' })}
                 className="hover:text-[var(--color-text-primary)] transition-colors py-2"
               >
                 Trending
@@ -134,11 +130,19 @@ export const Navbar: React.FC = () => {
                     align="end"
                   >
                     <DropdownMenu.Item 
-                      onClick={() => navigate({ to: '/' })}
+                      onClick={() => navigate({ to: '/profile' })}
                       className="flex items-center gap-3 px-3 h-[38px] text-sm text-[var(--color-text-primary)] outline-none cursor-pointer hover:bg-[var(--color-accent-dim)] rounded-md font-sans transition-colors"
                     >
                       <Bookmark size={16} />
                       My List
+                    </DropdownMenu.Item>
+
+                    <DropdownMenu.Item 
+                      onClick={() => toggleTheme()}
+                      className="flex items-center gap-3 px-3 h-[38px] text-sm text-[var(--color-text-primary)] outline-none cursor-pointer hover:bg-[var(--color-accent-dim)] rounded-md font-sans transition-colors"
+                    >
+                      {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                      {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                     </DropdownMenu.Item>
                     
                     <DropdownMenu.Separator className="h-px bg-[var(--color-border-subtle)] my-1" />
@@ -226,17 +230,6 @@ export const Navbar: React.FC = () => {
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    navigate({ to: '/' });
-                  }}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--color-text-primary)] hover:bg-[var(--color-card)] active:bg-[var(--color-accent-dim)] transition-colors text-base font-sans font-medium text-left min-h-[48px]"
-                >
-                  <Home size={18} className="text-[var(--color-accent)]" />
-                  Home
-                </button>
-
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
                     navigate({ to: '/search' });
                   }}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--color-text-primary)] hover:bg-[var(--color-card)] active:bg-[var(--color-accent-dim)] transition-colors text-base font-sans font-medium text-left min-h-[48px]"
@@ -248,7 +241,7 @@ export const Navbar: React.FC = () => {
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    navigate({ to: '/' });
+                    navigate({ to: '/trending' });
                   }}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--color-text-primary)] hover:bg-[var(--color-card)] active:bg-[var(--color-accent-dim)] transition-colors text-base font-sans font-medium text-left min-h-[48px]"
                 >
@@ -270,12 +263,27 @@ export const Navbar: React.FC = () => {
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    navigate({ to: '/' });
+                    navigate({ to: '/profile' });
                   }}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--color-text-primary)] hover:bg-[var(--color-card)] active:bg-[var(--color-accent-dim)] transition-colors text-base font-sans font-medium text-left min-h-[48px]"
                 >
                   <Bookmark size={18} className="text-[var(--color-accent)]" />
                   My List
+                </button>
+
+                <button
+                  onClick={() => {
+                    toggleTheme();
+                    // Optional: setMobileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--color-text-primary)] hover:bg-[var(--color-card)] active:bg-[var(--color-accent-dim)] transition-colors text-base font-sans font-medium text-left min-h-[48px]"
+                >
+                  {theme === 'dark' ? (
+                    <Sun size={18} className="text-[var(--color-accent)]" />
+                  ) : (
+                    <Moon size={18} className="text-[var(--color-accent)]" />
+                  )}
+                  {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                 </button>
               </div>
 

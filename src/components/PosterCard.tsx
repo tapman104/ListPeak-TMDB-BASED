@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Star } from 'lucide-react';
+import { Star, Bookmark } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { TMDB_IMAGE_BASE, TMDB_POSTER_SIZE } from '../lib/constants';
+import { useWatchlistStore } from '../store/watchlistStore';
+import { StatusBadge } from './StatusBadge';
+import { WatchlistModal } from './WatchlistModal';
 
 interface PosterCardProps {
   id: number;
@@ -17,6 +20,8 @@ interface PosterCardProps {
 export const PosterCard: React.FC<PosterCardProps> = ({ id, title, posterPath, rank, mediaType = 'movie', voteAverage, className }) => {
   const navigate = useNavigate();
   const imageUrl = posterPath ? `${TMDB_IMAGE_BASE}${TMDB_POSTER_SIZE}${posterPath}` : null;
+  const [modalOpen, setModalOpen] = useState(false);
+  const existingEntry = useWatchlistStore((state) => state.getEntry(id, mediaType));
 
   const handleClick = () => {
     navigate({
@@ -29,13 +34,14 @@ export const PosterCard: React.FC<PosterCardProps> = ({ id, title, posterPath, r
   const containerClasses = className || "w-[130px] min-[375px]:w-[140px] min-[425px]:w-[150px] sm:w-[165px] md:w-[180px] shrink-0";
 
   return (
-    <motion.div
-      onClick={handleClick}
-      whileHover={{ scale: 1.04, y: -4 }}
-      whileTap={{ scale: 0.97 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className={`relative aspect-[2/3] rounded-[var(--radius)] overflow-hidden cursor-pointer group bg-[var(--color-card)] snap-start select-none shadow-md ${containerClasses}`}
-    >
+    <>
+      <motion.div
+        onClick={handleClick}
+        whileHover={{ scale: 1.04, y: -4 }}
+        whileTap={{ scale: 0.97 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className={`relative aspect-[2/3] rounded-[var(--radius)] overflow-hidden cursor-pointer group bg-[var(--color-card)] snap-start select-none shadow-md ${containerClasses}`}
+      >
       {/* Poster Image */}
       {imageUrl ? (
         <img
@@ -68,6 +74,13 @@ export const PosterCard: React.FC<PosterCardProps> = ({ id, title, posterPath, r
         </div>
       )}
 
+      {/* Status Badge */}
+      {existingEntry && (
+        <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
+          <StatusBadge status={existingEntry.status} className="shadow-lg backdrop-blur-md" />
+        </div>
+      )}
+
       {/* Hover Overlay */}
       <div 
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20 pointer-events-none hidden md:block"
@@ -75,6 +88,13 @@ export const PosterCard: React.FC<PosterCardProps> = ({ id, title, posterPath, r
           background: 'linear-gradient(to top, rgba(7,7,13,0.95) 0%, rgba(7,7,13,0.4) 50%, transparent 100%)'
         }}
       >
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setModalOpen(true); }}
+          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white/20 transition-all pointer-events-auto shadow-md"
+        >
+          <Bookmark size={14} fill={existingEntry ? "currentColor" : "none"} />
+        </button>
+
         <div className="absolute bottom-0 left-0 right-0 p-3">
           <h3 
             className="text-white font-sans font-bold text-xs sm:text-sm leading-snug mb-1.5"
@@ -102,6 +122,17 @@ export const PosterCard: React.FC<PosterCardProps> = ({ id, title, posterPath, r
         </div>
       </div>
     </motion.div>
+    {modalOpen && (
+      <WatchlistModal
+        id={id}
+        type={mediaType}
+        title={title || ''}
+        posterPath={posterPath}
+        year={''}
+        onClose={() => setModalOpen(false)}
+      />
+    )}
+    </>
   );
 };
 

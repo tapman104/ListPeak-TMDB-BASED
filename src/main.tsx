@@ -7,6 +7,11 @@ import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persist
 import { get, set, del } from 'idb-keyval';
 import './index.css';
 
+// Apply theme before hydration to prevent FOUC
+const saved = localStorage.getItem('listpeak_theme');
+const theme = saved ? JSON.parse(saved)?.state?.theme : 'dark';
+if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+
 // Import the generated route tree
 import { routeTree } from './routeTree.gen';
 

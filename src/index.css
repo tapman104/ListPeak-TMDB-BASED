@@ -27,6 +27,16 @@
     --text-small: clamp(0.75rem, 1.2vw, 0.875rem);
   }
 
+  html[data-theme="light"] {
+    --color-background: #f0f0f5;
+    --color-surface: #ffffff;
+    --color-card: #e8e8f0;
+    --color-card-hover: #d8d8e0;
+    --color-text-primary: #0a0a0f;
+    --color-text-muted: #444455;
+    --color-border-subtle: rgba(0, 0, 0, 0.12);
+  }
+
   html {
     overflow-x: hidden;
     scroll-behavior: smooth;

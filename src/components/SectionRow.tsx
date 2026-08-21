@@ -16,7 +16,6 @@ export const SectionRow: React.FC<SectionRowProps> = ({ title, items, isLoading,
   
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
-  const [isHovered, setIsHovered] = useState(false);
 
   const handleScroll = () => {
     if (scrollRef.current) {
@@ -32,17 +31,16 @@ export const SectionRow: React.FC<SectionRowProps> = ({ title, items, isLoading,
     return () => window.removeEventListener('resize', handleScroll);
   }, [items]);
 
-  const scrollBy = (amount: number) => {
+  const scrollByAmount = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: amount, behavior: 'smooth' });
+      const amount = Math.max(scrollRef.current.clientWidth * 0.75, 600);
+      scrollRef.current.scrollBy({ left: direction === 'left' ? -amount : amount, behavior: 'smooth' });
     }
   };
 
   return (
     <section 
-      className="relative mb-8 sm:mb-12 max-w-[1600px] mx-auto"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      className="relative mb-8 sm:mb-12 max-w-[1600px] mx-auto group"
     >
       <div className="flex justify-between items-end px-4 sm:px-8 md:px-12 mb-3 sm:mb-4">
         <div>
@@ -58,44 +56,48 @@ export const SectionRow: React.FC<SectionRowProps> = ({ title, items, isLoading,
         </button>
       </div>
 
-      <div className="relative group">
+      <div className="relative">
         {/* Navigation Arrows (Desktop only) */}
-        <div 
-          className={`hidden md:flex absolute left-4 lg:left-8 top-1/2 -translate-y-1/2 z-30 transition-opacity duration-200 ${
-            showLeftArrow && isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
-        >
-          <button 
-            onClick={() => scrollBy(-600)}
-            className="flex items-center justify-center w-11 h-11 rounded-full bg-[rgba(7,7,13,0.85)] border border-[var(--color-border-subtle)] text-white hover:bg-[var(--color-surface)] hover:text-[var(--color-accent)] transition-colors cursor-pointer shadow-lg backdrop-blur-sm"
-            aria-label="Scroll Left"
+        {showLeftArrow && (
+          <div
+            className="hidden md:flex absolute left-0 top-0 bottom-0 w-24 z-30 items-center justify-start pl-4 lg:pl-8 bg-gradient-to-r from-black/80 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200"
           >
-            <ChevronLeft size={22} />
-          </button>
-        </div>
+            <button 
+              onClick={() => scrollByAmount('left')}
+              className="flex items-center justify-center w-11 h-11 rounded-full bg-[rgba(7,7,13,0.85)] border border-[var(--color-border-subtle)] text-white hover:bg-[var(--color-surface)] hover:text-[var(--color-accent)] transition-colors cursor-pointer shadow-lg backdrop-blur-sm pointer-events-auto"
+              aria-label="Scroll Left"
+            >
+              <ChevronLeft size={22} />
+            </button>
+          </div>
+        )}
 
-        <div 
-          className={`hidden md:flex absolute right-4 lg:right-8 top-1/2 -translate-y-1/2 z-30 transition-opacity duration-200 ${
-            showRightArrow && isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
-        >
-          <button 
-            onClick={() => scrollBy(600)}
-            className="flex items-center justify-center w-11 h-11 rounded-full bg-[rgba(7,7,13,0.85)] border border-[var(--color-border-subtle)] text-white hover:bg-[var(--color-surface)] hover:text-[var(--color-accent)] transition-colors cursor-pointer shadow-lg backdrop-blur-sm"
-            aria-label="Scroll Right"
+        {showRightArrow && (
+          <div
+            className="hidden md:flex absolute right-0 top-0 bottom-0 w-24 z-30 items-center justify-end pr-4 lg:pr-8 bg-gradient-to-l from-black/80 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200"
           >
-            <ChevronRight size={22} />
-          </button>
-        </div>
+            <button 
+              onClick={() => scrollByAmount('right')}
+              className="flex items-center justify-center w-11 h-11 rounded-full bg-[rgba(7,7,13,0.85)] border border-[var(--color-border-subtle)] text-white hover:bg-[var(--color-surface)] hover:text-[var(--color-accent)] transition-colors cursor-pointer shadow-lg backdrop-blur-sm pointer-events-auto"
+              aria-label="Scroll Right"
+            >
+              <ChevronRight size={22} />
+            </button>
+          </div>
+        )}
 
         {/* Row with snap scroll */}
         <div 
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex overflow-x-auto gap-2.5 sm:gap-3.5 no-scrollbar px-4 sm:px-8 md:px-12 pb-3 pt-1 snap-x snap-mandatory"
+          className="flex overflow-x-auto gap-2.5 sm:gap-3.5 px-4 sm:px-8 md:px-12 pb-6 pt-2 snap-x snap-mandatory scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          style={{
+            maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)',
+            WebkitMaskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)'
+          }}
         >
           {isLoading ? (
-            Array.from({ length: 14 }).map((_, i) => <SkeletonCard key={`r-${i}`} />)
+            Array.from({ length: 14 }).map((_, i) => <SkeletonCard key={`r-${i}`} className="w-36 sm:w-40 md:w-44 shrink-0" />)
           ) : (
             items.map((item, index) => (
               <PosterCard
@@ -106,6 +108,7 @@ export const SectionRow: React.FC<SectionRowProps> = ({ title, items, isLoading,
                 rank={showRank ? index + 1 : undefined}
                 mediaType={item.media_type}
                 voteAverage={item.vote_average}
+                className="w-36 sm:w-40 md:w-44 shrink-0"
               />
             ))
           )}

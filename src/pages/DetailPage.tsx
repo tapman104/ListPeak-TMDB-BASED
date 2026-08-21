@@ -10,6 +10,7 @@ import { useKeyStore } from '../store/keyStore';
 import { createTMDBClient } from '../api/tmdb';
 import { TMDB_IMAGE_BASE, TMDB_BACKDROP_SIZE, TMDB_POSTER_SIZE } from '../lib/constants';
 import { PosterCard } from '../components/PosterCard';
+import { WatchlistButton } from '../components/WatchlistButton';
 
 // Define container and item variants for staggering motion
 const containerVariants = {
@@ -458,12 +459,14 @@ export const DetailPage: React.FC = () => {
                   Watch Trailer
                 </button>
               )}
-              <button 
-                className="w-full sm:w-auto flex-1 sm:flex-none min-h-[44px] px-5 sm:px-6 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white font-sans font-bold text-xs sm:text-sm flex items-center justify-center gap-2 hover:bg-white/10 active:scale-[0.98] transition-all cursor-pointer"
-              >
-                <Heart size={16} />
-                My List
-              </button>
+              <WatchlistButton 
+                id={Number(id)} 
+                type={type as 'movie' | 'tv'} 
+                title={title} 
+                posterPath={data.poster_path} 
+                year={releaseYear} 
+                totalEpisodes={numEpisodes} 
+              />
             </motion.div>
 
             {/* Icon Action Row */}

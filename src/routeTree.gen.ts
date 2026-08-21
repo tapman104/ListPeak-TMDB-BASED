@@ -10,8 +10,10 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SetupRouteImport } from './routes/setup'
+import { Route as TrendingRouteImport } from './routes/trending'
 import { Route as DetailIdRouteImport } from './routes/detail.$id'
 import { Route as PersonIdRouteImport } from './routes/person.$id'
 import { Route as DetailIdCastRouteImport } from './routes/detail.$id.cast'
@@ -19,6 +21,11 @@ import { Route as DetailIdCastRouteImport } from './routes/detail.$id.cast'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SearchRoute = SearchRouteImport.update({
@@ -29,6 +36,11 @@ const SearchRoute = SearchRouteImport.update({
 const SetupRoute = SetupRouteImport.update({
   id: '/setup',
   path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrendingRoute = TrendingRouteImport.update({
+  id: '/trending',
+  path: '/trending',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DetailIdRoute = DetailIdRouteImport.update({
@@ -49,16 +61,20 @@ const DetailIdCastRoute = DetailIdCastRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
+  '/trending': typeof TrendingRoute
   '/detail/$id': typeof DetailIdRouteWithChildren
   '/person/$id': typeof PersonIdRoute
   '/detail/$id/cast': typeof DetailIdCastRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
+  '/trending': typeof TrendingRoute
   '/detail/$id': typeof DetailIdRouteWithChildren
   '/person/$id': typeof PersonIdRoute
   '/detail/$id/cast': typeof DetailIdCastRoute
@@ -66,8 +82,10 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/setup': typeof SetupRoute
+  '/trending': typeof TrendingRoute
   '/detail/$id': typeof DetailIdRouteWithChildren
   '/person/$id': typeof PersonIdRoute
   '/detail/$id/cast': typeof DetailIdCastRoute
@@ -76,24 +94,30 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/profile'
     | '/search'
     | '/setup'
+    | '/trending'
     | '/detail/$id'
     | '/person/$id'
     | '/detail/$id/cast'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/profile'
     | '/search'
     | '/setup'
+    | '/trending'
     | '/detail/$id'
     | '/person/$id'
     | '/detail/$id/cast'
   id:
     | '__root__'
     | '/'
+    | '/profile'
     | '/search'
     | '/setup'
+    | '/trending'
     | '/detail/$id'
     | '/person/$id'
     | '/detail/$id/cast'
@@ -101,8 +125,10 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ProfileRoute: typeof ProfileRoute
   SearchRoute: typeof SearchRoute
   SetupRoute: typeof SetupRoute
+  TrendingRoute: typeof TrendingRoute
   DetailIdRoute: typeof DetailIdRouteWithChildren
   PersonIdRoute: typeof PersonIdRoute
 }
@@ -114,6 +140,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/search': {
@@ -128,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/setup'
       fullPath: '/setup'
       preLoaderRoute: typeof SetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trending': {
+      id: '/trending'
+      path: '/trending'
+      fullPath: '/trending'
+      preLoaderRoute: typeof TrendingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/detail/$id': {
@@ -168,8 +208,10 @@ const DetailIdRouteWithChildren = DetailIdRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ProfileRoute: ProfileRoute,
   SearchRoute: SearchRoute,
   SetupRoute: SetupRoute,
+  TrendingRoute: TrendingRoute,
   DetailIdRoute: DetailIdRouteWithChildren,
   PersonIdRoute: PersonIdRoute,
 }
