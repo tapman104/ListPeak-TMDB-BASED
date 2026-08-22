@@ -9,9 +9,9 @@ export interface UseSearchOptions {
   type?: SearchType;
   genres?: number[];
   year?: string | number | null;
-  minYear?: string | number | null;
   maxYear?: string | number | null;
   minRating?: number;
+  originLanguage?: string;
 }
 
 export const useSearch = ({
@@ -22,6 +22,7 @@ export const useSearch = ({
   minYear = null,
   maxYear = null,
   minRating = 0,
+  originLanguage,
 }: UseSearchOptions) => {
   const apiKey = useKeyStore((state) => state.apiKey);
   const [rawResults, setRawResults] = useState<SearchResultItem[]>([]);
@@ -83,10 +84,15 @@ export const useSearch = ({
           }
         }
 
+        // Origin language check
+        if (originLanguage && (item as any).original_language !== originLanguage) {
+          return false;
+        }
+
         return true;
       });
     },
-    [type, genres, year, minYear, maxYear, minRating]
+    [type, genres, year, minYear, maxYear, minRating, originLanguage]
   );
 
   // Derive filtered results without extra render cycle
@@ -128,14 +134,14 @@ export const useSearch = ({
         if (type === 'movie') {
           const resp = await tmdb.searchMovies(trimmed, 1, {
             primary_release_year: year || minYear || undefined,
-          });
+          }, undefined, originLanguage);
           fetchedItems = (resp.results || []).map((item) => ({ ...item, media_type: 'movie' as const }));
           fetchedTotalPages = resp.total_pages;
           fetchedTotalResults = resp.total_results;
         } else if (type === 'tv') {
           const resp = await tmdb.searchTV(trimmed, 1, {
             first_air_date_year: year || minYear || undefined,
-          });
+          }, undefined, originLanguage);
           fetchedItems = (resp.results || []).map((item) => ({ ...item, media_type: 'tv' as const }));
           fetchedTotalPages = resp.total_pages;
           fetchedTotalResults = resp.total_results;
@@ -145,7 +151,7 @@ export const useSearch = ({
           fetchedTotalPages = resp.total_pages;
           fetchedTotalResults = resp.total_results;
         } else {
-          const resp = await tmdb.searchMulti(trimmed, 1);
+          const resp = await tmdb.searchMulti(trimmed, 1, undefined, originLanguage);
           fetchedItems = resp.results || [];
           fetchedTotalPages = resp.total_pages;
           fetchedTotalResults = resp.total_results;
@@ -173,7 +179,7 @@ export const useSearch = ({
     return () => {
       isCurrent = false;
     };
-  }, [apiKey, query, type, year, minYear]);
+  }, [apiKey, query, type, year, minYear, originLanguage]);
 
   // Load next page
   const loadMore = useCallback(async () => {
@@ -191,18 +197,18 @@ export const useSearch = ({
       if (type === 'movie') {
         const resp = await tmdb.searchMovies(trimmed, nextPage, {
           primary_release_year: year || minYear || undefined,
-        });
+        }, undefined, originLanguage);
         fetchedItems = (resp.results || []).map((item) => ({ ...item, media_type: 'movie' as const }));
       } else if (type === 'tv') {
         const resp = await tmdb.searchTV(trimmed, nextPage, {
           first_air_date_year: year || minYear || undefined,
-        });
+        }, undefined, originLanguage);
         fetchedItems = (resp.results || []).map((item) => ({ ...item, media_type: 'tv' as const }));
       } else if (type === 'person') {
         const resp = await tmdb.searchPeople(trimmed, nextPage);
         fetchedItems = (resp.results || []).map((item) => ({ ...item, media_type: 'person' as const }));
       } else {
-        const resp = await tmdb.searchMulti(trimmed, nextPage);
+        const resp = await tmdb.searchMulti(trimmed, nextPage, undefined, originLanguage);
         fetchedItems = resp.results || [];
       }
 
@@ -229,7 +235,7 @@ export const useSearch = ({
         setIsLoadingMore(false);
       }
     }
-  }, [apiKey, query, type, year, minYear, isLoading, isLoadingMore, currentPage, totalPages]);
+  }, [apiKey, query, type, year, minYear, isLoading, isLoadingMore, currentPage, totalPages, originLanguage]);
 
   const refetch = useCallback(() => {
     setCurrentPage(1);
@@ -248,12 +254,12 @@ export const useSearch = ({
         let fetchedTotalPages = 1;
         let fetchedTotalResults = 0;
         if (type === 'movie') {
-          const resp = await tmdb.searchMovies(trimmed, 1, { primary_release_year: year || minYear || undefined });
+          const resp = await tmdb.searchMovies(trimmed, 1, { primary_release_year: year || minYear || undefined }, undefined, originLanguage);
           fetchedItems = (resp.results || []).map((item) => ({ ...item, media_type: 'movie' as const }));
           fetchedTotalPages = resp.total_pages;
           fetchedTotalResults = resp.total_results;
         } else if (type === 'tv') {
-          const resp = await tmdb.searchTV(trimmed, 1, { first_air_date_year: year || minYear || undefined });
+          const resp = await tmdb.searchTV(trimmed, 1, { first_air_date_year: year || minYear || undefined }, undefined, originLanguage);
           fetchedItems = (resp.results || []).map((item) => ({ ...item, media_type: 'tv' as const }));
           fetchedTotalPages = resp.total_pages;
           fetchedTotalResults = resp.total_results;
@@ -263,7 +269,7 @@ export const useSearch = ({
           fetchedTotalPages = resp.total_pages;
           fetchedTotalResults = resp.total_results;
         } else {
-          const resp = await tmdb.searchMulti(trimmed, 1);
+          const resp = await tmdb.searchMulti(trimmed, 1, undefined, originLanguage);
           fetchedItems = resp.results || [];
           fetchedTotalPages = resp.total_pages;
           fetchedTotalResults = resp.total_results;
@@ -279,7 +285,7 @@ export const useSearch = ({
       }
     };
     void perform();
-  }, [apiKey, query, type, year, minYear]);
+  }, [apiKey, query, type, year, minYear, originLanguage]);
 
   const hasMore = currentPage < totalPages;
 

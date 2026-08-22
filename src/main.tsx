@@ -21,6 +21,7 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       retry: 1,
+      staleTime: 0,
       gcTime: 1000 * 60 * 60 * 24 * 7,
     },
   },
@@ -53,7 +54,17 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <PersistQueryClientProvider 
       client={queryClient} 
-      persistOptions={{ persister, maxAge: 1000 * 60 * 60 * 24 * 7 }}
+      persistOptions={{ 
+        persister, 
+        maxAge: 1000 * 60 * 60 * 24 * 7,
+        buster: 'v1',
+        dehydrateOptions: {
+          shouldDehydrateQuery: (query) => {
+            const hasFilter = query.queryKey[1] && query.queryKey[1] !== 'all';
+            return !hasFilter && query.state.status === 'success';
+          }
+        }
+      }}
     >
       <RouterProvider router={router} />
     </PersistQueryClientProvider>

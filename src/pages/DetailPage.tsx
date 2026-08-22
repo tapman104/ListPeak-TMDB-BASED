@@ -11,6 +11,7 @@ import { createTMDBClient } from '../api/tmdb';
 import { TMDB_IMAGE_BASE, TMDB_BACKDROP_SIZE, TMDB_POSTER_SIZE } from '../lib/constants';
 import { PosterCard } from '../components/PosterCard';
 import { WatchlistButton } from '../components/WatchlistButton';
+import { useFilterStore } from '../store/filterStore';
 
 // Define container and item variants for staggering motion
 const containerVariants = {
@@ -35,6 +36,7 @@ export const DetailPage: React.FC = () => {
   const { type } = useSearch({ from: '/detail/$id' });
   const navigate = useNavigate();
   const apiKey = useKeyStore((state) => state.apiKey);
+  const recommendationFilter = useFilterStore((state) => state.recommendations);
   
   const [showCopied, setShowCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'seasons' | 'cast'>('overview');
@@ -1153,14 +1155,22 @@ export const DetailPage: React.FC = () => {
         )}
 
         {/* YOU MAY ALSO LIKE SECTION */}
-        {data.similar?.results && data.similar.results.length > 0 && (
-          <motion.section variants={itemVariants}>
-            <h2 className="font-sans font-medium text-xs uppercase tracking-[0.15em] font-semibold text-white/60 mb-4">
-              YOU MAY ALSO LIKE
-            </h2>
-            <div className="flex md:grid overflow-x-auto md:overflow-visible gap-3 md:grid-cols-4 lg:grid-cols-5 pb-3 snap-x md:snap-none no-scrollbar">
-              {data.similar.results.slice(0, 12).map((item) => {
-                const simImageUrl = item.poster_path ? `${TMDB_IMAGE_BASE}w342${item.poster_path}` : null;
+        {(() => {
+          const lang = recommendationFilter === 'all' ? undefined : recommendationFilter;
+          const filteredSimilar = data.similar?.results
+            ? data.similar.results.filter(item => lang ? (item as any).original_language === lang : true)
+            : [];
+          
+          if (filteredSimilar.length === 0) return null;
+          
+          return (
+            <motion.section variants={itemVariants}>
+              <h2 className="font-sans font-medium text-xs uppercase tracking-[0.15em] font-semibold text-white/60 mb-4">
+                YOU MAY ALSO LIKE
+              </h2>
+              <div className="flex md:grid overflow-x-auto md:overflow-visible gap-3 md:grid-cols-4 lg:grid-cols-5 pb-3 snap-x md:snap-none no-scrollbar">
+                {filteredSimilar.slice(0, 12).map((item) => {
+                  const simImageUrl = item.poster_path ? `${TMDB_IMAGE_BASE}w342${item.poster_path}` : null;
                 const simTitle = item.title || item.name;
                 const simVote = item.vote_average;
                 
@@ -1214,7 +1224,8 @@ export const DetailPage: React.FC = () => {
               })}
             </div>
           </motion.section>
-        )}
+          );
+        })()}
         
       </motion.div>
 

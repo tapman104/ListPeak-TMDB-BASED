@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { type TMDBPerson } from '../api/tmdb';
 import { useSearch, type SearchType } from '../hooks/useSearch';
+import { useFilterStore } from '../store/filterStore';
 import { SearchAutocomplete } from '../components/SearchAutocomplete';
 import { PosterCard } from '../components/PosterCard';
 import { SkeletonCard } from '../components/SkeletonCard';
@@ -33,6 +34,9 @@ export const SearchPage: React.FC = () => {
   const [minYear] = useState<string>('');
   const [maxYear] = useState<string>('');
 
+  const searchFilter = useFilterStore((state) => state.search);
+  const originLanguage = searchFilter === 'all' ? undefined : searchFilter;
+
   // Sync route query change
   if (prevRouteQuery !== routeQuery) {
     setPrevRouteQuery(routeQuery);
@@ -56,6 +60,7 @@ export const SearchPage: React.FC = () => {
     minRating: minRating > 0 ? minRating : undefined,
     minYear: minYear.trim() ? minYear.trim() : undefined,
     maxYear: maxYear.trim() ? maxYear.trim() : undefined,
+    originLanguage,
   });
 
   const handleQuerySubmit = (newQuery: string) => {

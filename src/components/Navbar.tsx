@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { KeyRound, Search, Bookmark, LogOut, Menu, X, Home, Film, Tv, Sun, Moon } from 'lucide-react';
+import { KeyRound, Search, Bookmark, LogOut, Menu, X, Home, Film, Tv, Sun, Moon, SlidersHorizontal } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useKeyStore } from '../store/keyStore';
 import { useThemeStore } from '../store/themeStore';
 import { useNavigate } from '@tanstack/react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { SearchAutocomplete } from './SearchAutocomplete';
+import { FilterSettings } from './FilterSettings';
 
 export const Navbar: React.FC = () => {
   const clearApiKey = useKeyStore((state) => state.clearApiKey);
@@ -14,6 +15,7 @@ export const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -109,6 +111,15 @@ export const Navbar: React.FC = () => {
               aria-label="Toggle Search"
             >
               {searchOpen ? <X size={20} /> : <Search size={20} />}
+            </button>
+
+            {/* Filter Toggle */}
+            <button 
+              onClick={() => setFilterOpen(true)}
+              className="flex items-center justify-center w-11 h-11 text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] rounded-full cursor-pointer"
+              aria-label="Open Filters"
+            >
+              <SlidersHorizontal size={20} />
             </button>
 
             {/* User Dropdown (Desktop & Tablet) */}
@@ -308,6 +319,9 @@ export const Navbar: React.FC = () => {
           </>
         )}
       </AnimatePresence>
+
+      {/* Filter Settings Drawer */}
+      <FilterSettings open={filterOpen} onClose={() => setFilterOpen(false)} />
     </>
   );
 };

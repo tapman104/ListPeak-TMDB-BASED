@@ -2,6 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useKeyStore } from '../store/keyStore';
+import { useFilterStore } from '../store/filterStore';
 import { createTMDBClient } from '../api/tmdb';
 import { Navbar } from '../components/Navbar';
 import { HeroSection } from '../components/HeroSection';
@@ -11,27 +12,29 @@ import { AlertCircle } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
   const apiKey = useKeyStore((state) => state.apiKey);
+  const { homepage: homepageFilter, hideAdult, hideVarietyShows } = useFilterStore();
   const navigate = useNavigate();
 
   const tmdb = apiKey ? createTMDBClient(apiKey) : null;
+  const originLanguage = homepageFilter === 'all' ? undefined : homepageFilter;
 
   const { data: trendingWeek, isLoading: isLoadingWeek, error: errorWeek } = useQuery({
-    queryKey: ['trending-week'],
-    queryFn: ({ signal }) => tmdb!.getTrendingWeek({ signal }),
+    queryKey: ['trending-week', homepageFilter],
+    queryFn: ({ signal }) => tmdb!.getTrendingWeek({ signal }, originLanguage),
     enabled: !!apiKey,
     staleTime: 1000 * 60 * 5,
   });
 
   const { data: popularMovies, isLoading: isLoadingPopular } = useQuery({
-    queryKey: ['popular-movies'],
-    queryFn: ({ signal }) => tmdb!.getPopularMovies({ signal }),
+    queryKey: ['popular-movies', homepageFilter],
+    queryFn: ({ signal }) => tmdb!.getPopularMovies({ signal }, originLanguage),
     enabled: !!apiKey && !!trendingWeek, // Stagger after trending
     staleTime: 1000 * 60 * 5,
   });
 
   const { data: topRatedSeries, isLoading: isLoadingSeries } = useQuery({
-    queryKey: ['top-rated-series'],
-    queryFn: ({ signal }) => tmdb!.getTopRatedSeries({ signal }),
+    queryKey: ['top-rated-series', homepageFilter],
+    queryFn: ({ signal }) => tmdb!.getTopRatedSeries({ signal }, originLanguage),
     enabled: !!apiKey && !!popularMovies, // Stagger after popular
     staleTime: 1000 * 60 * 5,
   });

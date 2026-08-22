@@ -212,9 +212,18 @@ export const createTMDBClient = (apiKey: string) => {
       }
       return response.json();
     },
-    getTrendingWeek: (init?: RequestInit) => fetchTMDB<TMDBResponse<TMDBMedia>>('/trending/all/week', init),
-    getPopularMovies: (init?: RequestInit) => fetchTMDB<TMDBResponse<TMDBMedia>>('/movie/popular', init),
-    getTopRatedSeries: (init?: RequestInit) => fetchTMDB<TMDBResponse<TMDBMedia>>('/tv/top_rated', init),
+    getTrendingWeek: (init?: RequestInit, originLanguage?: string) => {
+      const params = originLanguage ? `?sort_by=popularity.desc&with_original_language=${originLanguage}&page=1` : `?sort_by=popularity.desc&page=1`;
+      return fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/tv${params}`, init);
+    },
+    getPopularMovies: (init?: RequestInit, originLanguage?: string) => {
+      const params = originLanguage ? `?sort_by=popularity.desc&with_original_language=${originLanguage}&page=1` : `?sort_by=popularity.desc&page=1`;
+      return fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/movie${params}`, init);
+    },
+    getTopRatedSeries: (init?: RequestInit, originLanguage?: string) => {
+      const params = originLanguage ? `?sort_by=popularity.desc&with_original_language=${originLanguage}&page=1` : `?sort_by=popularity.desc&page=1`;
+      return fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/tv${params}`, init);
+    },
     getMediaDetails: (id: string, type: 'movie' | 'tv', init?: RequestInit) => 
       fetchTMDB<TMDBDetail>(
         `/${type}/${id}?append_to_response=credits,videos,similar,content_ratings,watch/providers,keywords,release_dates`, init
@@ -230,24 +239,26 @@ export const createTMDBClient = (apiKey: string) => {
     getPersonImages: (id: number, init?: RequestInit) => fetchTMDB<{ profiles: { file_path: string }[] }>(`/person/${id}/images`, init),
     getMovieGenres: (init?: RequestInit) => fetchTMDB<{ genres: TMDBGenre[] }>('/genre/movie/list', init),
     getTVGenres: (init?: RequestInit) => fetchTMDB<{ genres: TMDBGenre[] }>('/genre/tv/list', init),
-    searchMulti: (query: string, page = 1, init?: RequestInit) => 
-      fetchTMDB<TMDBResponse<SearchResultItem>>(`/search/multi?query=${encodeURIComponent(query)}&page=${page}`, init),
-    searchMovies: (query: string, page = 1, options?: { primary_release_year?: string | number; year?: string | number }, init?: RequestInit) => {
+    searchMulti: (query: string, page = 1, init?: RequestInit, originLanguage?: string) => 
+      fetchTMDB<TMDBResponse<SearchResultItem>>(`/search/multi?query=${encodeURIComponent(query)}&page=${page}${originLanguage ? `&with_original_language=${originLanguage}` : ''}`, init),
+    searchMovies: (query: string, page = 1, options?: { primary_release_year?: string | number; year?: string | number }, init?: RequestInit, originLanguage?: string) => {
       let url = `/search/movie?query=${encodeURIComponent(query)}&page=${page}`;
       if (options?.primary_release_year) {
         url += `&primary_release_year=${options.primary_release_year}`;
       } else if (options?.year) {
         url += `&year=${options.year}`;
       }
+      if (originLanguage) url += `&with_original_language=${originLanguage}`;
       return fetchTMDB<TMDBResponse<TMDBMedia>>(url, init);
     },
-    searchTV: (query: string, page = 1, options?: { first_air_date_year?: string | number; year?: string | number }, init?: RequestInit) => {
+    searchTV: (query: string, page = 1, options?: { first_air_date_year?: string | number; year?: string | number }, init?: RequestInit, originLanguage?: string) => {
       let url = `/search/tv?query=${encodeURIComponent(query)}&page=${page}`;
       if (options?.first_air_date_year) {
         url += `&first_air_date_year=${options.first_air_date_year}`;
       } else if (options?.year) {
         url += `&year=${options.year}`;
       }
+      if (originLanguage) url += `&with_original_language=${originLanguage}`;
       return fetchTMDB<TMDBResponse<TMDBMedia>>(url, init);
     },
     searchPeople: (query: string, page = 1, init?: RequestInit) => 
