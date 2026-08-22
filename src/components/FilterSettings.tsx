@@ -19,7 +19,7 @@ const REGIONS: { label: string; value: DramaRegion }[] = [
 ];
 
 export const FilterSettings: React.FC<FilterSettingsProps> = ({ open, onClose }) => {
-  const { homepage, recommendations, search, hideAdult, hideVarietyShows, setFilter, setContentOption } = useFilterStore();
+  const { homepage, recommendations, search, hideAdult, hideVarietyShows, hideBL, hideLesbian, setFilter, setContentOption } = useFilterStore();
 
   const renderSection = (title: string, scope: 'homepage' | 'recommendations' | 'search', currentValue: DramaRegion) => (
     <div className="mb-8">
@@ -110,6 +110,42 @@ export const FilterSettings: React.FC<FilterSettingsProps> = ({ open, onClose })
                       <span
                         className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                           hideVarietyShows ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col mr-4">
+                      <span className="text-sm font-medium text-[var(--color-text-primary)]">Hide BL / Boys Love</span>
+                      <span className="text-xs text-[var(--color-text-muted)] mt-0.5">Filters known BL/GL titles by keyword</span>
+                    </div>
+                    <button
+                      onClick={() => setContentOption('hideBL', !hideBL)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                        hideBL ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-surface)] border border-[var(--color-border-subtle)]'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          hideBL ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col mr-4">
+                      <span className="text-sm font-medium text-[var(--color-text-primary)]">Hide Yuri / GL Content</span>
+                      <span className="text-xs text-[var(--color-text-muted)] mt-0.5">Filters known BL/GL titles by keyword</span>
+                    </div>
+                    <button
+                      onClick={() => setContentOption('hideLesbian', !hideLesbian)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                        hideLesbian ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-surface)] border border-[var(--color-border-subtle)]'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          hideLesbian ? 'translate-x-6' : 'translate-x-1'
                         }`}
                       />
                     </button>

@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Star, Bookmark } from 'lucide-react';
+import { Star, Bookmark, MoreVertical } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { TMDB_IMAGE_BASE, TMDB_POSTER_SIZE } from '../lib/constants';
 import { useWatchlistStore } from '../store/watchlistStore';
+import { useFilterStore } from '../store/filterStore';
 import { StatusBadge } from './StatusBadge';
 import { WatchlistModal } from './WatchlistModal';
 
@@ -15,13 +16,38 @@ interface PosterCardProps {
   mediaType?: 'movie' | 'tv';
   voteAverage?: number;
   className?: string;
+  adult?: boolean;
+  genreIds?: number[];
+  onHide?: () => void;
 }
 
-export const PosterCard: React.FC<PosterCardProps> = ({ id, title, posterPath, rank, mediaType = 'movie', voteAverage, className }) => {
+export const PosterCard: React.FC<PosterCardProps> = ({ id, title, posterPath, rank, mediaType = 'movie', voteAverage, className, adult, genreIds, onHide }) => {
   const navigate = useNavigate();
   const imageUrl = posterPath ? `${TMDB_IMAGE_BASE}${TMDB_POSTER_SIZE}${posterPath}` : null;
   const [modalOpen, setModalOpen] = useState(false);
   const existingEntry = useWatchlistStore((state) => state.getEntry(id, mediaType));
+
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const setContentOption = useFilterStore((state) => state.setContentOption);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    if (dropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [dropdownOpen]);
+
+  const isAdult = adult === true;
+  const isVariety = genreIds?.includes(10764) || genreIds?.includes(10767);
+  const showOptions = isAdult || isVariety;
 
   const handleClick = () => {
     navigate({
@@ -83,7 +109,7 @@ export const PosterCard: React.FC<PosterCardProps> = ({ id, title, posterPath, r
 
       {/* Hover Overlay */}
       <div 
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20 pointer-events-none hidden md:block"
+        className={`absolute inset-0 transition-opacity duration-200 z-20 pointer-events-none hidden md:block ${dropdownOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
         style={{
           background: 'linear-gradient(to top, rgba(7,7,13,0.95) 0%, rgba(7,7,13,0.4) 50%, transparent 100%)'
         }}
@@ -94,6 +120,51 @@ export const PosterCard: React.FC<PosterCardProps> = ({ id, title, posterPath, r
         >
           <Bookmark size={14} fill={existingEntry ? "currentColor" : "none"} />
         </button>
+
+        {showOptions && (
+          <div className="absolute top-2 left-2 pointer-events-auto" ref={dropdownRef} onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                setDropdownOpen(!dropdownOpen);
+              }}
+              className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white/20 transition-all shadow-md"
+            >
+              <MoreVertical size={14} />
+            </button>
+
+            {dropdownOpen && (
+              <div className="absolute top-full left-0 mt-1 w-32 bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-md shadow-xl z-50 overflow-hidden py-1">
+                {isAdult && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setContentOption('hideAdult', true);
+                      setDropdownOpen(false);
+                      onHide?.();
+                    }}
+                    className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-text-primary)] hover:bg-[var(--color-accent)] hover:text-white transition-colors"
+                  >
+                    Hide adult content
+                  </button>
+                )}
+                {isVariety && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setContentOption('hideVarietyShows', true);
+                      setDropdownOpen(false);
+                      onHide?.();
+                    }}
+                    className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-text-primary)] hover:bg-[var(--color-accent)] hover:text-white transition-colors"
+                  >
+                    Hide variety & reality
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="absolute bottom-0 left-0 right-0 p-3">
           <h3 

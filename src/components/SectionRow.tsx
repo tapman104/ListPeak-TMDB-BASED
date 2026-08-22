@@ -9,9 +9,10 @@ interface SectionRowProps {
   items: TMDBMedia[];
   isLoading: boolean;
   showRank?: boolean;
+  mediaType?: 'movie' | 'tv';
 }
 
-export const SectionRow: React.FC<SectionRowProps> = ({ title, items, isLoading, showRank = false }) => {
+export const SectionRow: React.FC<SectionRowProps> = ({ title, items, isLoading, showRank = false, mediaType }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   
   const [showLeftArrow, setShowLeftArrow] = useState(false);
@@ -106,8 +107,10 @@ export const SectionRow: React.FC<SectionRowProps> = ({ title, items, isLoading,
                 title={item.title || item.name}
                 posterPath={item.poster_path}
                 rank={showRank ? index + 1 : undefined}
-                mediaType={item.media_type}
+                mediaType={item.media_type ?? mediaType}
                 voteAverage={item.vote_average}
+                adult={item.adult}
+                genreIds={item.genre_ids}
                 className="w-36 sm:w-40 md:w-44 shrink-0"
               />
             ))

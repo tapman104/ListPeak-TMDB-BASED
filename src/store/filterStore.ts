@@ -9,8 +9,10 @@ interface FilterStore {
   search: DramaRegion;
   hideAdult: boolean;
   hideVarietyShows: boolean;
+  hideBL: boolean;
+  hideLesbian: boolean;
   setFilter: (scope: 'homepage' | 'recommendations' | 'search', value: DramaRegion) => void;
-  setContentOption: (key: 'hideAdult' | 'hideVarietyShows', value: boolean) => void;
+  setContentOption: (key: 'hideAdult' | 'hideVarietyShows' | 'hideBL' | 'hideLesbian', value: boolean) => void;
 }
 
 export const useFilterStore = create<FilterStore>()(
@@ -21,6 +23,8 @@ export const useFilterStore = create<FilterStore>()(
       search: 'all',
       hideAdult: true,
       hideVarietyShows: false,
+      hideBL: false,
+      hideLesbian: false,
       setFilter: (scope, value) => set((state) => ({ ...state, [scope]: value })),
       setContentOption: (key, value) => set((state) => ({ ...state, [key]: value })),
     }),

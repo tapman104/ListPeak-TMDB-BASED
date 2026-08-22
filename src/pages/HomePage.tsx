@@ -12,39 +12,63 @@ import { AlertCircle } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
   const apiKey = useKeyStore((state) => state.apiKey);
-  const { homepage: homepageFilter, hideAdult, hideVarietyShows } = useFilterStore();
+  const { homepage: homepageFilter, hideAdult, hideVarietyShows, hideBL, hideLesbian } = useFilterStore();
   const navigate = useNavigate();
 
   const tmdb = apiKey ? createTMDBClient(apiKey) : null;
-  const originLanguage = homepageFilter === 'all' ? undefined : homepageFilter;
+  const VALID_REGIONS = ['all', 'ko', 'ja', 'zh', 'th', 'cn', 'tw'];
+  const safeHomepageFilter = VALID_REGIONS.includes(homepageFilter) ? homepageFilter : 'all';
+
+  const REGION_TO_LANG: Partial<Record<string, string>> = { cn: 'zh', tw: 'zh' };
+  const originLanguage = safeHomepageFilter === 'all'
+    ? undefined
+    : (REGION_TO_LANG[safeHomepageFilter] ?? safeHomepageFilter);
 
   const { data: trendingWeek, isLoading: isLoadingWeek, error: errorWeek } = useQuery({
-    queryKey: ['trending-week', homepageFilter],
+    queryKey: ['trending-week', safeHomepageFilter],
     queryFn: ({ signal }) => tmdb!.getTrendingWeek({ signal }, originLanguage),
     enabled: !!apiKey,
     staleTime: 1000 * 60 * 5,
   });
 
-  const { data: popularMovies, isLoading: isLoadingPopular } = useQuery({
-    queryKey: ['popular-movies', homepageFilter],
-    queryFn: ({ signal }) => tmdb!.getPopularMovies({ signal }, originLanguage),
-    enabled: !!apiKey && !!trendingWeek, // Stagger after trending
-    staleTime: 1000 * 60 * 5,
+  const { data: blIds } = useQuery({
+    queryKey: ['bl-exclusion-ids'],
+    queryFn: ({ signal }) => tmdb!.getBLIds({ signal }),
+    enabled: !!apiKey && hideBL,
+    staleTime: 1000 * 60 * 60,
   });
 
-  const { data: topRatedSeries, isLoading: isLoadingSeries } = useQuery({
-    queryKey: ['top-rated-series', homepageFilter],
-    queryFn: ({ signal }) => tmdb!.getTopRatedSeries({ signal }, originLanguage),
-    enabled: !!apiKey && !!popularMovies, // Stagger after popular
-    staleTime: 1000 * 60 * 5,
+  const { data: glIds } = useQuery({
+    queryKey: ['gl-exclusion-ids'],
+    queryFn: ({ signal }) => tmdb!.getGLIds({ signal }),
+    enabled: !!apiKey && hideLesbian,
+    staleTime: 1000 * 60 * 60,
   });
 
   if (!apiKey) {
     return null;
   }
 
+  const filterItems = (items?: any[], originLang?: string) => {
+    if (!items) return [];
 
-  const heroItem = trendingWeek?.results?.[0] || null;
+    const blExclusionSet = new Set(blIds || []);
+    const glExclusionSet = new Set(glIds || []);
+
+    return items.filter((item) => {
+      if (hideAdult && item.adult === true) return false;
+      if (hideVarietyShows && item.genre_ids) {
+        if (item.genre_ids.includes(10764) || item.genre_ids.includes(10767)) return false;
+      }
+      if (hideBL && blExclusionSet.has(item.id)) return false;
+      if (hideLesbian && glExclusionSet.has(item.id)) return false;
+      if (originLang && item.original_language !== originLang) return false;
+      return true;
+    });
+  };
+
+  const filteredTrending = filterItems(trendingWeek?.results, originLanguage);
+  const heroItem = filteredTrending[0] || null;
 
   const hasAuthError = errorWeek?.message === 'API key invalid or expired';
 
@@ -79,22 +103,12 @@ export const HomePage: React.FC = () => {
         <div className="mt-[-2.5rem] sm:mt-[-3.5rem] md:mt-[-5rem] relative z-20 space-y-1 sm:space-y-2">
           <SectionRow 
             title="Trending This Week" 
-            items={trendingWeek?.results || []} 
+            items={filteredTrending} 
             isLoading={isLoadingWeek}
             showRank={true}
           />
           
-          <SectionRow 
-            title="Popular Movies" 
-            items={popularMovies?.results || []} 
-            isLoading={isLoadingPopular}
-          />
 
-          <SectionRow 
-            title="Top Rated Series" 
-            items={topRatedSeries?.results || []} 
-            isLoading={isLoadingSeries}
-          />
         </div>
       </main>
 

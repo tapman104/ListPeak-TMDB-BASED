@@ -4,7 +4,6 @@ import { RouterProvider, createRouter } from '@tanstack/react-router';
 import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
-import { get, set, del } from 'idb-keyval';
 import './index.css';
 
 // Apply theme before hydration to prevent FOUC
@@ -28,11 +27,7 @@ const queryClient = new QueryClient({
 });
 
 const persister = createSyncStoragePersister({
-  storage: {
-    getItem: (key) => get(key) as unknown as string,
-    setItem: (key, value) => { set(key, value); },
-    removeItem: (key) => { del(key); },
-  },
+  storage: window.localStorage,
 });
 
 const router = createRouter({

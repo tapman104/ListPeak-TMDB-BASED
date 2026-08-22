@@ -16,6 +16,7 @@ export interface TMDBMedia {
   first_air_date?: string;
   vote_average: number;
   vote_count: number;
+  adult?: boolean;
 }
 
 export interface TMDBResponse<T> {
@@ -212,16 +213,38 @@ export const createTMDBClient = (apiKey: string) => {
       }
       return response.json();
     },
-    getTrendingWeek: (init?: RequestInit, originLanguage?: string) => {
-      const params = originLanguage ? `?sort_by=popularity.desc&with_original_language=${originLanguage}&page=1` : `?sort_by=popularity.desc&page=1`;
-      return fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/tv${params}`, init);
+    getTrendingWeek: async (init?: RequestInit, originLanguage?: string) => {
+      if (originLanguage) {
+        const [tv, movies] = await Promise.all([
+          fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/tv?sort_by=popularity.desc&with_original_language=${originLanguage}&page=1`, init),
+          fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/movie?sort_by=popularity.desc&with_original_language=${originLanguage}&page=1`, init)
+        ]);
+        // TMDB discover doesn't consistently return media_type, so we add it manually
+        const tvWithMediaType = tv.results.map(item => ({ ...item, media_type: 'tv' as const }));
+        const moviesWithMediaType = movies.results.map(item => ({ ...item, media_type: 'movie' as const }));
+        
+        const results = [...tvWithMediaType, ...moviesWithMediaType]
+          .sort((a, b) => b.popularity - a.popularity)
+          .slice(0, 20);
+          
+        return { page: 1, results, total_pages: 1, total_results: results.length };
+      }
+      return fetchTMDB<TMDBResponse<TMDBMedia>>(`/trending/all/week?page=1`, init);
+    },
+    getBLIds: async (init?: RequestInit) => {
+      const response = await fetchTMDB<TMDBResponse<{ id: number }>>('/discover/tv?with_keywords=158718&page=1', init);
+      return response.results.map(r => r.id);
+    },
+    getGLIds: async (init?: RequestInit) => {
+      const response = await fetchTMDB<TMDBResponse<{ id: number }>>('/discover/tv?with_keywords=155201&page=1', init);
+      return response.results.map(r => r.id);
     },
     getPopularMovies: (init?: RequestInit, originLanguage?: string) => {
       const params = originLanguage ? `?sort_by=popularity.desc&with_original_language=${originLanguage}&page=1` : `?sort_by=popularity.desc&page=1`;
       return fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/movie${params}`, init);
     },
     getTopRatedSeries: (init?: RequestInit, originLanguage?: string) => {
-      const params = originLanguage ? `?sort_by=popularity.desc&with_original_language=${originLanguage}&page=1` : `?sort_by=popularity.desc&page=1`;
+      const params = originLanguage ? `?sort_by=vote_average.desc&vote_count.gte=200&with_original_language=${originLanguage}&page=1` : `?sort_by=vote_average.desc&vote_count.gte=200&page=1`;
       return fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/tv${params}`, init);
     },
     getMediaDetails: (id: string, type: 'movie' | 'tv', init?: RequestInit) => 
