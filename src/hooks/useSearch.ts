@@ -9,6 +9,7 @@ export interface UseSearchOptions {
   type?: SearchType;
   genres?: number[];
   year?: string | number | null;
+  minYear?: string | number | null;
   maxYear?: string | number | null;
   minRating?: number;
   originLanguage?: string;

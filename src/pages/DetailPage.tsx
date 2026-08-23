@@ -464,7 +464,7 @@ export const DetailPage: React.FC = () => {
               <WatchlistButton 
                 id={Number(id)} 
                 type={type as 'movie' | 'tv'} 
-                title={title} 
+                title={title || ''} 
                 posterPath={data.poster_path} 
                 year={releaseYear} 
                 totalEpisodes={numEpisodes} 

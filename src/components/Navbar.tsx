@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { KeyRound, Search, Bookmark, LogOut, Menu, X, Home, Film, Tv, Sun, Moon, SlidersHorizontal } from 'lucide-react';
+import { KeyRound, Search, Bookmark, LogOut, Menu, X, Film, Tv, Sun, Moon, SlidersHorizontal } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useKeyStore } from '../store/keyStore';
 import { useThemeStore } from '../store/themeStore';

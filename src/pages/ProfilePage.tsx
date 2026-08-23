@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Download, Bookmark } from 'lucide-react';
+import { Download, Bookmark, Settings } from 'lucide-react';
 import { useWatchlistStore, type WatchlistEntry } from '../store/watchlistStore';
+import { useAuthStore } from '../store/authStore';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { PosterCard } from '../components/PosterCard';
+import { SettingsModal } from '../components/settings/SettingsModal';
 
 const statuses: WatchlistEntry['status'][] = ['watching', 'completed', 'planning', 'paused', 'dropped'];
 
@@ -11,6 +13,7 @@ export const ProfilePage: React.FC = () => {
   const store = useWatchlistStore();
   const allEntries = store.getAllEntries();
   const [activeTab, setActiveTab] = useState<WatchlistEntry['status']>('watching');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const totalCount = allEntries.length;
   const completedCount = store.getByStatus('completed').length;
@@ -49,9 +52,28 @@ export const ProfilePage: React.FC = () => {
       
       <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-8 md:px-12 pt-24 pb-16">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-display font-bold text-white mb-2">My Profile</h1>
-            <p className="text-[var(--color-text-muted)] font-sans">Manage your personal watchlist and progress.</p>
+          <div className="flex items-center gap-4">
+            {useAuthStore.getState().user?.avatarUrl ? (
+              <img src={useAuthStore.getState().user!.avatarUrl} alt="Avatar" className="w-16 h-16 rounded-full" />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-[var(--color-accent)] flex items-center justify-center text-xl font-bold text-white uppercase">
+                {useAuthStore.getState().user?.email?.[0] || 'U'}
+              </div>
+            )}
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl sm:text-4xl font-display font-bold text-white mb-1">
+                  {useAuthStore.getState().user?.username || 'My Profile'}
+                </h1>
+                <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-colors">
+                  <Settings size={20} />
+                </button>
+              </div>
+              <p className="text-[var(--color-text-muted)] font-sans">
+                {useAuthStore.getState().user?.email || 'Manage your personal watchlist and progress.'}
+                {useAuthStore.getState().storageMode === 'cloud' && <span className="ml-2 text-xs text-blue-400">Synced to cloud</span>}
+              </p>
+            </div>
           </div>
           
           <div className="flex items-center gap-4 bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-xl p-4 shadow-lg shrink-0">
@@ -135,6 +157,7 @@ export const ProfilePage: React.FC = () => {
       </main>
 
       <Footer />
+      <SettingsModal open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </div>
   );
 };

@@ -11,6 +11,12 @@ const saved = localStorage.getItem('listpeak_theme');
 const theme = saved ? JSON.parse(saved)?.state?.theme : 'dark';
 if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
 
+// Background sync listener
+import { syncToCloud } from './lib/sync';
+window.addEventListener('focus', () => {
+  syncToCloud();
+});
+
 // Import the generated route tree
 import { routeTree } from './routeTree.gen';
 
