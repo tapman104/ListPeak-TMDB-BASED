@@ -135,17 +135,24 @@ const FilmographyRow: React.FC<{
     : null;
   const role = showRoleBadge ? inferRole(credit) : null;
 
+  const mediaLabel = mediaType === 'tv' ? 'Drama' : 'Movie';
+  const metadataParts = [mediaLabel];
+  if (year > 0) metadataParts.push(year.toString());
+  if (role) metadataParts.push(role);
+  if (credit.episode_count != null && credit.episode_count > 0) metadataParts.push(`${credit.episode_count}ep`);
+  const metadataStr = metadataParts.join(' · ');
+
   return (
     <motion.button
       onClick={() => onNavigate(credit.id, mediaType)}
-      className="w-full flex items-center gap-4 px-2 sm:px-4 py-3 rounded-lg
+      className="w-full flex items-start gap-3 sm:gap-4 px-2 sm:px-4 py-3 rounded-lg
                  hover:bg-white/[0.04] active:bg-white/[0.06]
                  transition-colors duration-150 text-left group cursor-pointer"
       whileHover={{ x: 1 }}
       transition={{ duration: 0.12 }}
     >
       {/* Thumbnail */}
-      <div className="w-[72px] h-[104px] rounded-lg overflow-hidden shrink-0 bg-white/[0.06]">
+      <div className="w-[72px] h-[100px] sm:w-[80px] sm:h-[115px] rounded-lg overflow-hidden shrink-0 bg-white/[0.06]">
         {thumbUrl ? (
           <img
             src={thumbUrl}
@@ -158,42 +165,28 @@ const FilmographyRow: React.FC<{
         )}
       </div>
 
-      {/* Year — fixed width, mono */}
-      <span className="w-12 shrink-0 text-white/60 text-sm font-mono tabular-nums">
-        {year > 0 ? year : '—'}
-      </span>
-
-      {/* Title + character — flex-1 */}
+      {/* Middle Column — Title and Metadata */}
       <div className="flex-1 min-w-0">
-        <p className="text-white text-base font-medium leading-snug truncate group-hover:text-white transition-colors">
+        <p className="text-white text-base sm:text-lg font-semibold leading-snug line-clamp-2 group-hover:text-white transition-colors">
           {title}
         </p>
-        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-          {(credit.character || credit.job) && (
-            <span className="text-white/50 text-sm leading-none truncate">
-              {credit.character ? `as ${credit.character}` : credit.job}
-            </span>
-          )}
-          {role && (
-            <span className="shrink-0 px-1.5 py-0.5 text-xs leading-none text-white/40 bg-white/5 border border-white/10 rounded">
-              {role}
-            </span>
-          )}
-        </div>
+        <p className="text-xs sm:text-sm text-white/45 mt-0.5">
+          {metadataStr}
+        </p>
+        {(credit.character || credit.job) && (
+          <p className="text-xs sm:text-sm text-white/60 mt-0.5 truncate">
+            {credit.character ? `as ${credit.character}` : credit.job}
+          </p>
+        )}
       </div>
 
-      {/* Episode count — fixed width */}
-      <span className="w-8 shrink-0 text-center text-white/50 text-sm tabular-nums">
-        {credit.episode_count != null && credit.episode_count > 0 ? `${credit.episode_count}ep` : ''}
-      </span>
-
-      {/* Rating — fixed width */}
-      <div className="w-12 shrink-0 flex items-center justify-end gap-0.5">
+      {/* Right Column — Rating */}
+      <div className="shrink-0 self-start mt-1 sm:mt-2 flex flex-col items-end gap-1">
         {rating && (
-          <>
-            <Star size={14} className="text-yellow-400 fill-yellow-400 shrink-0" />
-            <span className="text-white text-sm tabular-nums font-semibold">{rating}</span>
-          </>
+          <div className="flex items-center gap-0.5">
+            <Star size={16} className="text-yellow-400 fill-yellow-400 shrink-0" />
+            <span className="text-white text-sm font-bold tabular-nums">{rating}</span>
+          </div>
         )}
       </div>
     </motion.button>
