@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'motion/react';
@@ -522,7 +522,10 @@ export const PersonPage: React.FC = () => {
 
   const personId = id ? Number(id) : NaN;
 
-  const tmdb = apiKey ? createTMDBClient(apiKey) : null;
+  const tmdb = useMemo(
+    () => (apiKey ? createTMDBClient(apiKey) : null),
+    [apiKey]
+  );
 
   const { data: details, isLoading: isLoadingDetails, error: errorDetails } = useQuery({
     queryKey: ['person', personId],

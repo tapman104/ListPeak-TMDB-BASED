@@ -314,19 +314,53 @@ export const createTMDBClient = (apiKey: string) => {
       mediaType: 'tv' | 'movie' | 'all';
       page?: number;
       signal?: AbortSignal;
+      originLanguage?: string;
+      sortBy?: 'popularity' | 'rating' | 'newest';
+      minRating?: number;
     }) => {
       const page = options.page || 1;
       const init = { signal: options.signal };
+      const langParam = options.originLanguage && options.originLanguage !== 'all' ? `&with_original_language=${options.originLanguage}` : '';
+      
+      let ratingParam = '';
+      if (options.minRating && options.minRating > 0) {
+        ratingParam = `&vote_average.gte=${options.minRating}&vote_count.gte=50`;
+      }
+      
+      const getSortParam = (mediaType: 'tv' | 'movie', sortBy: 'popularity' | 'rating' | 'newest' | undefined) => {
+        if (!sortBy) return 'popularity.desc';
+        if (sortBy === 'newest') return mediaType === 'tv' ? 'first_air_date.desc' : 'release_date.desc';
+        const sortMap = {
+          popularity: 'popularity.desc',
+          rating: 'vote_average.desc',
+          newest: 'first_air_date.desc',
+        };
+        return sortMap[sortBy];
+      };
+      
       if (options.mediaType === 'all') {
+        const tvSort = getSortParam('tv', options.sortBy);
+        const movieSort = getSortParam('movie', options.sortBy);
         const [tv, movies] = await Promise.all([
-          fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/tv?with_keywords=${options.keywordId}&sort_by=popularity.desc&page=${page}`, init),
-          fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/movie?with_keywords=${options.keywordId}&sort_by=popularity.desc&page=${page}`, init)
+          fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/tv?with_keywords=${options.keywordId}&sort_by=${tvSort}&page=${page}${langParam}${ratingParam}`, init),
+          fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/movie?with_keywords=${options.keywordId}&sort_by=${movieSort}&page=${page}${langParam}${ratingParam}`, init)
         ]);
         const tvWithMediaType = tv.results.map(item => ({ ...item, media_type: 'tv' as const }));
         const moviesWithMediaType = movies.results.map(item => ({ ...item, media_type: 'movie' as const }));
         
-        const results = [...tvWithMediaType, ...moviesWithMediaType]
-          .sort((a, b) => b.popularity - a.popularity);
+        const results = [...tvWithMediaType, ...moviesWithMediaType];
+        
+        if (options.sortBy === 'newest') {
+          results.sort((a, b) => {
+            const dateA = new Date(a.first_air_date || a.release_date || 0).getTime();
+            const dateB = new Date(b.first_air_date || b.release_date || 0).getTime();
+            return dateB - dateA;
+          });
+        } else if (options.sortBy === 'rating') {
+          results.sort((a, b) => b.vote_average - a.vote_average);
+        } else {
+          results.sort((a, b) => b.popularity - a.popularity);
+        }
           
         return {
           page,
@@ -337,7 +371,8 @@ export const createTMDBClient = (apiKey: string) => {
       }
       
       const type = options.mediaType;
-      const res = await fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/${type}?with_keywords=${options.keywordId}&sort_by=popularity.desc&page=${page}`, init);
+      const sortParam = getSortParam(type, options.sortBy);
+      const res = await fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/${type}?with_keywords=${options.keywordId}&sort_by=${sortParam}&page=${page}${langParam}${ratingParam}`, init);
       res.results = res.results.map(item => ({ ...item, media_type: type }));
       return res;
     },

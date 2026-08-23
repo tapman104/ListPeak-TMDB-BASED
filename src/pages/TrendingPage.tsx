@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useKeyStore } from '../store/keyStore';
 import { useFilterStore } from '../store/filterStore';
@@ -28,7 +28,10 @@ const NSFW_KEYWORDS = [
 
 export const TrendingPage: React.FC = () => {
   const apiKey = useKeyStore((state) => state.apiKey);
-  const tmdb = apiKey ? createTMDBClient(apiKey) : null;
+  const tmdb = useMemo(
+    () => (apiKey ? createTMDBClient(apiKey) : null),
+    [apiKey]
+  );
   const { hideNSFW } = useFilterStore();
   const hiddenItems = useHiddenStore((state) => state.hiddenItems);
   const dismissed = useDismissedStore((state) => state.dismissed);

@@ -220,11 +220,11 @@ const REGIONS: { label: string; value: DramaRegion }[] = [
 ];
 
 const FiltersTab = () => {
-  const { homepage, recommendations, search, hideAdult, hideVarietyShows, hideNSFW, setFilter, setContentOption } = useFilterStore();
+  const { homepage, recommendations, search, tagResults, hideAdult, hideVarietyShows, hideNSFW, showTagOriginFilter, setFilter, setContentOption, setShowTagOriginFilter } = useFilterStore();
   const hiddenItems = useHiddenStore((state) => state.hiddenItems);
   const clearAllHidden = useHiddenStore((state) => state.clearAll);
 
-  const renderSection = (title: string, scope: 'homepage' | 'recommendations' | 'search', currentValue: DramaRegion) => (
+  const renderSection = (title: string, scope: 'homepage' | 'recommendations' | 'search' | 'tagResults', currentValue: DramaRegion) => (
     <div className="mb-8">
       <h3 className="text-sm font-semibold text-[var(--color-text-muted)] mb-3 uppercase tracking-wider">{title}</h3>
       <div className="flex flex-wrap gap-2">
@@ -250,6 +250,7 @@ const FiltersTab = () => {
       {renderSection('Homepage', 'homepage', homepage)}
       {renderSection('Recommendations', 'recommendations', recommendations)}
       {renderSection('Search', 'search', search)}
+      {renderSection('Tag Results', 'tagResults', tagResults)}
 
       <div className="mb-8">
         <h3 className="text-sm font-semibold text-[var(--color-text-muted)] mb-3 uppercase tracking-wider">Content Options</h3>
@@ -257,6 +258,7 @@ const FiltersTab = () => {
           <ToggleOption label="Hide Adult Content" description="" value={hideAdult} onChange={() => setContentOption('hideAdult', !hideAdult)} />
           <ToggleOption label="Hide Variety & Reality Shows" description="" value={hideVarietyShows} onChange={() => setContentOption('hideVarietyShows', !hideVarietyShows)} />
           <ToggleOption label="Hide NSFW" description="Filters adult-oriented and explicit content" value={hideNSFW} onChange={() => setContentOption('hideNSFW', !hideNSFW)} />
+          <ToggleOption label="Tag Origin Filter" description="Show language/region filter bar on tag result pages" value={showTagOriginFilter} onChange={() => setShowTagOriginFilter(!showTagOriginFilter)} />
         </div>
       </div>
 

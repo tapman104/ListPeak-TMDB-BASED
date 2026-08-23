@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useKeyStore } from '../store/keyStore';
@@ -36,7 +36,10 @@ export const HomePage: React.FC = () => {
   const dismissed = useDismissedStore((state) => state.dismissed);
   const navigate = useNavigate();
 
-  const tmdb = apiKey ? createTMDBClient(apiKey) : null;
+  const tmdb = useMemo(
+    () => (apiKey ? createTMDBClient(apiKey) : null),
+    [apiKey]
+  );
   const VALID_REGIONS = ['all', 'ko', 'ja', 'zh', 'th', 'cn', 'tw'];
   const safeHomepageFilter = VALID_REGIONS.includes(homepageFilter) ? homepageFilter : 'all';
 

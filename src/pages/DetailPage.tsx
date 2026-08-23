@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useSearch, useNavigate, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
@@ -82,7 +82,10 @@ export const DetailPage: React.FC = () => {
     window.scrollTo(0, 0);
   }, [id]);
 
-  const tmdb = apiKey ? createTMDBClient(apiKey) : null;
+  const tmdb = useMemo(
+    () => (apiKey ? createTMDBClient(apiKey) : null),
+    [apiKey]
+  );
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['detail', type, id],
@@ -1063,7 +1066,7 @@ export const DetailPage: React.FC = () => {
                   key={kw.id}
                   to="/tag/$id"
                   params={{ id: String(kw.id) }}
-                  search={{ name: kw.name, type: 'all' }}
+                  search={{ name: kw.name, type: 'all', lang: 'all', sort: 'popularity', minRating: 0 }}
                   className="font-sans text-[11px] text-[#a0a0b8] px-2.5 py-1 rounded-full bg-[#0e0e1a] border border-[rgba(255,255,255,0.07)] hover:bg-white/10 hover:border-[var(--color-accent)] hover:text-white transition-colors cursor-pointer"
                 >
                   {kw.name}

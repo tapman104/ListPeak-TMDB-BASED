@@ -7,11 +7,14 @@ interface FilterStore {
   homepage: DramaRegion;
   recommendations: DramaRegion;
   search: DramaRegion;
+  tagResults: DramaRegion;
   hideAdult: boolean;
   hideVarietyShows: boolean;
   hideNSFW: boolean;
-  setFilter: (scope: 'homepage' | 'recommendations' | 'search', value: DramaRegion) => void;
+  showTagOriginFilter: boolean;
+  setFilter: (scope: 'homepage' | 'recommendations' | 'search' | 'tagResults', value: DramaRegion) => void;
   setContentOption: (key: 'hideAdult' | 'hideVarietyShows' | 'hideNSFW', value: boolean) => void;
+  setShowTagOriginFilter: (v: boolean) => void;
 }
 
 export const useFilterStore = create<FilterStore>()(
@@ -20,11 +23,14 @@ export const useFilterStore = create<FilterStore>()(
       homepage: 'all',
       recommendations: 'all',
       search: 'all',
+      tagResults: 'all',
       hideAdult: true,
       hideVarietyShows: false,
       hideNSFW: true,
+      showTagOriginFilter: false,
       setFilter: (scope, value) => set((state) => ({ ...state, [scope]: value })),
       setContentOption: (key, value) => set((state) => ({ ...state, [key]: value })),
+      setShowTagOriginFilter: (v) => set((state) => ({ ...state, showTagOriginFilter: v })),
     }),
     {
       name: 'listpeak_filters',

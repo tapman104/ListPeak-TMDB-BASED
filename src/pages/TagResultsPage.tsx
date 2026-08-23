@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useParams, useSearch, useNavigate } from '@tanstack/react-router';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useKeyStore } from '../store/keyStore';
@@ -11,35 +11,37 @@ import { Footer } from '../components/Footer';
 import { PosterCard } from '../components/PosterCard';
 import { ArrowLeft } from 'lucide-react';
 
-const NSFW_KEYWORDS = [
-  'love class', 'semantic error', 'to my star', 'nobleman ryu',
-  'wish you', 'where your eyes linger', 'light on me',
-  'a shoulder to cry on', 'mr. heart', 'kissable lips',
-  'behind cut', 'history', 'stay with me', 'roommates of poongduck',
-  'tinted with you', 'you make me dance', 'unintentional love story',
-  'my sweet dear', 'our dating sim', 'weak hero',
-  'sotus', 'theory of love', '2gether', 'bright win',
-  'bad buddy', 'kinn porsche', 'not me', 'between us',
-  'only friends', 'my school president', 'the eclipse',
-  'a tale of thousand stars', 'love in the air', 'bed friend',
-  'my gear and your gown', 'vice versa', 'dangerous romance',
-  'given', 'cherry magic', 'blue flag',
-  'citrus', 'bloom into you',
-  'boys love', 'bl drama', 'gl drama', 'yaoi',
+
+
+const ORIGIN_FILTERS = [
+  { label: 'All',        lang: 'all' },
+  { label: 'K-Drama',   lang: 'ko'  },
+  { label: 'J-Drama',   lang: 'ja'  },
+  { label: 'C-Drama',   lang: 'zh'  },
+  { label: 'Thai',      lang: 'th'  },
+  { label: 'Chinese',   lang: 'cn'  },
+  { label: 'Taiwanese', lang: 'tw'  },
 ];
 
 export const TagResultsPage: React.FC = () => {
   const { id } = useParams({ from: '/tag/$id' });
-  const { name, type } = useSearch({ from: '/tag/$id' }) as { name?: string; type: 'all' | 'movie' | 'tv' };
+  const { name, type, lang, sort, minRating } = useSearch({ from: '/tag/$id' });
   const navigate = useNavigate();
   const apiKey = useKeyStore((state) => state.apiKey);
-  const tmdb = apiKey ? createTMDBClient(apiKey) : null;
-  const { hideNSFW } = useFilterStore();
+  const tmdb = useMemo(
+    () => (apiKey ? createTMDBClient(apiKey) : null),
+    [apiKey]
+  );
+  const { hideVarietyShows, showTagOriginFilter, tagResults: settingsLang } = useFilterStore();
   const hiddenItems = useHiddenStore((state) => state.hiddenItems);
   const dismissed = useDismissedStore((state) => state.dismissed);
   
   const keywordId = Number(id);
   const keywordName = name || `Tag #${id}`;
+
+  const effectiveLang = (lang === 'all' && settingsLang !== 'all')
+    ? settingsLang
+    : lang;
 
   const {
     data,
@@ -49,13 +51,16 @@ export const TagResultsPage: React.FC = () => {
     hasNextPage,
     isFetchingNextPage
   } = useInfiniteQuery({
-    queryKey: ['tag-results', keywordId, type],
+    queryKey: ['tag-results', keywordId, type, effectiveLang, sort, minRating],
     queryFn: async ({ pageParam = 1, signal }) => {
       const res = await tmdb!.getDiscoverByKeyword({
         keywordId,
         mediaType: type,
         page: pageParam,
-        signal
+        signal,
+        originLanguage: effectiveLang,
+        sortBy: sort,
+        minRating: minRating
       });
       return res;
     },
@@ -82,14 +87,13 @@ export const TagResultsPage: React.FC = () => {
     return true;
   });
 
-  if (hideNSFW) {
-    filteredResults = filteredResults.filter(item => !NSFW_KEYWORDS.some(kw => {
-      const i = item as any;
-      return i.name?.toLowerCase().includes(kw) ||
-        i.title?.toLowerCase().includes(kw) ||
-        i.original_name?.toLowerCase().includes(kw) ||
-        i.original_title?.toLowerCase().includes(kw);
-    }));
+
+
+  if (hideVarietyShows) {
+    filteredResults = filteredResults.filter(item => {
+      if (!item.genre_ids) return true;
+      return !item.genre_ids.includes(10764) && !item.genre_ids.includes(10767);
+    });
   }
 
   const totalResults = data?.pages[0]?.total_results || 0;
@@ -125,7 +129,7 @@ export const TagResultsPage: React.FC = () => {
             {(['all', 'tv', 'movie'] as const).map((t) => (
               <button
                 key={t}
-                onClick={() => navigate({ to: '/tag/$id', params: { id: String(keywordId) }, search: { name: keywordName, type: t } })}
+                onClick={() => navigate({ to: '/tag/$id', params: { id: String(keywordId) }, search: { name: keywordName, type: t, lang: effectiveLang, sort, minRating } })}
                 className={`px-6 py-2 rounded-lg font-sans text-sm font-semibold capitalize transition-all ${
                   type === t
                     ? 'bg-[var(--color-accent)] text-black shadow-md'
@@ -138,6 +142,54 @@ export const TagResultsPage: React.FC = () => {
           </div>
         </div>
         
+        {/* Origin Filters */}
+        {showTagOriginFilter && (
+          <div className="flex flex-wrap items-center gap-2 mb-8">
+            {ORIGIN_FILTERS.map((f) => (
+              <button
+                key={f.lang}
+                onClick={() => navigate({ to: '/tag/$id', params: { id: String(keywordId) }, search: { name: keywordName, type, lang: f.lang, sort, minRating } })}
+                className={`px-4 py-1.5 rounded-full font-sans text-sm font-semibold transition-all ${
+                  effectiveLang === f.lang
+                    ? 'bg-[var(--color-accent)] text-black shadow-md'
+                    : 'bg-[#1c1c2e] text-white/60 hover:text-white hover:bg-[#2a2a40]'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Content Filters */}
+        <div className="flex flex-wrap items-center gap-3 mb-8">
+          <select
+            value={sort}
+            onChange={(e) => navigate({ to: '/tag/$id', params: { id: String(keywordId) }, search: { name: keywordName, type, lang: effectiveLang, sort: e.target.value as any, minRating } })}
+            className="bg-[#1c1c2e] text-white/80 text-sm font-sans font-semibold px-4 py-2 rounded-xl border border-white/10 cursor-pointer hover:bg-[#2a2a40] transition-colors outline-none"
+          >
+            <option value="popularity">Most Popular</option>
+            <option value="rating">Top Rated</option>
+            <option value="newest">Newest</option>
+          </select>
+
+          <div className="flex items-center gap-2 bg-[#1c1c2e] p-1 rounded-xl">
+            {[0, 6, 7, 8].map((rating) => (
+              <button
+                key={rating}
+                onClick={() => navigate({ to: '/tag/$id', params: { id: String(keywordId) }, search: { name: keywordName, type, lang: effectiveLang, sort, minRating: rating } })}
+                className={`px-4 py-1 rounded-lg font-sans text-sm font-semibold transition-all ${
+                  minRating === rating
+                    ? 'bg-[var(--color-accent)] text-black shadow-md'
+                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {rating === 0 ? 'All' : `${rating}+`}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             <div className="text-white animate-pulse">Loading results...</div>

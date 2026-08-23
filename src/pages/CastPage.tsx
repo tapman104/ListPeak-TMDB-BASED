@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useParams, useSearch, useNavigate } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
@@ -19,7 +20,10 @@ export default function CastPage() {
   const navigate = useNavigate();
   const apiKey = useKeyStore((state) => state.apiKey);
 
-  const tmdb = apiKey ? createTMDBClient(apiKey) : null;
+  const tmdb = useMemo(
+    () => (apiKey ? createTMDBClient(apiKey) : null),
+    [apiKey]
+  );
 
   const { data: credits, isLoading } = useQuery({
     queryKey: ['credits', type, id],
