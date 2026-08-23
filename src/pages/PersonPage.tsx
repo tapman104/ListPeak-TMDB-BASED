@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'motion/react';
-import { ArrowLeft, AlertCircle, ChevronLeft, ChevronRight, User, Home, Search as SearchIcon, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ArrowLeft, AlertCircle, ChevronLeft, ChevronRight, User, Home, Search as SearchIcon, X, Star } from 'lucide-react';
 import { useKeyStore } from '../store/keyStore';
 import { useHiddenStore } from '../store/hiddenStore';
 import { useDismissedStore } from '../store/dismissedStore';
@@ -81,7 +81,308 @@ const calculateAge = (birthDate?: string | null, deathDate?: string | null) => {
   }
 };
 
-// Reusable row for credits
+// Variety / Reality genre IDs from TMDB
+const VARIETY_GENRE_IDS = new Set([10764, 10767]);
+
+const getYear = (credit: PersonCredit): number => {
+  const d = credit.release_date || credit.first_air_date;
+  if (!d) return 0;
+  const y = parseInt(d.slice(0, 4), 10);
+  return isNaN(y) ? 0 : y;
+};
+
+type SortMode = 'year_desc' | 'year_asc' | 'rating_desc';
+type FilmographyTab = 'all' | 'drama' | 'movies' | 'tv';
+
+const sortCredits = (credits: PersonCredit[], sort: SortMode): PersonCredit[] => {
+  return [...credits].sort((a, b) => {
+    if (sort === 'year_desc') return getYear(b) - getYear(a);
+    if (sort === 'year_asc') return getYear(a) - getYear(b);
+    // rating_desc
+    return (b.vote_average || 0) - (a.vote_average || 0);
+  });
+};
+
+// ─────────────────────────────────────────────
+// FilmographyRow — single vertical list item
+// ─────────────────────────────────────────────
+// Role inference helper (cast-only heuristic, no extra data needed)
+const inferRole = (credit: PersonCredit): string | null => {
+  if (!credit.character) return null;
+  const ch = credit.character.toLowerCase();
+  if (ch.includes('cameo') || ch.includes('herself') || ch.includes('himself') || ch.includes('themselves')) return 'Cameo';
+  if (credit.episode_count != null) {
+    if (credit.episode_count >= 10) return 'Main Role';
+    if (credit.episode_count >= 3) return 'Support';
+    return 'Guest';
+  }
+  return null;
+};
+
+const FilmographyRow: React.FC<{
+  credit: PersonCredit;
+  onNavigate: (id: number, type: 'movie' | 'tv') => void;
+  showRoleBadge?: boolean;
+}> = ({ credit, onNavigate, showRoleBadge = true }) => {
+  const title = credit.title || credit.name || 'Untitled';
+  const year = getYear(credit);
+  const mediaType = credit.media_type === 'movie' ? 'movie' : 'tv';
+  const thumbUrl = credit.poster_path
+    ? `${TMDB_IMAGE_BASE}w92${credit.poster_path}`
+    : null;
+  const rating = credit.vote_average && credit.vote_average > 0
+    ? credit.vote_average.toFixed(1)
+    : null;
+  const role = showRoleBadge ? inferRole(credit) : null;
+
+  return (
+    <motion.button
+      onClick={() => onNavigate(credit.id, mediaType)}
+      className="w-full flex items-center gap-3 px-2 sm:px-3 py-2.5 rounded-lg
+                 hover:bg-white/[0.04] active:bg-white/[0.06]
+                 transition-colors duration-150 text-left group cursor-pointer"
+      whileHover={{ x: 1 }}
+      transition={{ duration: 0.12 }}
+    >
+      {/* Thumbnail — fixed 52×75px */}
+      <div className="w-[64px] h-[92px] rounded-lg overflow-hidden shrink-0 bg-white/[0.06]">
+        {thumbUrl ? (
+          <img
+            src={thumbUrl}
+            alt={title}
+            className="w-full h-full object-cover block"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full bg-white/[0.04]" />
+        )}
+      </div>
+
+      {/* Year — fixed width, mono */}
+      <span className="w-12 shrink-0 text-white/50 text-xs font-mono tabular-nums">
+        {year > 0 ? year : '—'}
+      </span>
+
+      {/* Title + character — flex-1 */}
+      <div className="flex-1 min-w-0">
+        <p className="text-white text-sm font-medium leading-snug truncate group-hover:text-white/90 transition-colors">
+          {title}
+        </p>
+        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+          {(credit.character || credit.job) && (
+            <span className="text-white/50 text-xs leading-none truncate">
+              {credit.character ? `as ${credit.character}` : credit.job}
+            </span>
+          )}
+          {role && (
+            <span className="shrink-0 px-1.5 py-0.5 text-[10px] leading-none text-white/40 bg-white/5 border border-white/10 rounded">
+              {role}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Episode count — fixed width */}
+      <span className="w-8 shrink-0 text-center text-white/40 text-xs tabular-nums">
+        {credit.episode_count != null && credit.episode_count > 0 ? `${credit.episode_count}ep` : ''}
+      </span>
+
+      {/* Rating — fixed width */}
+      <div className="w-12 shrink-0 flex items-center justify-end gap-0.5">
+        {rating && (
+          <>
+            <Star size={12} className="text-yellow-400 fill-yellow-400 shrink-0" />
+            <span className="text-white/70 text-xs tabular-nums font-medium">{rating}</span>
+          </>
+        )}
+      </div>
+    </motion.button>
+  );
+};
+
+// ─────────────────────────────────────────────
+// FilmographyListSection — section header + rows
+// ─────────────────────────────────────────────
+const FilmographyListSection: React.FC<{
+  label: string;
+  credits: PersonCredit[];
+  sort: SortMode;
+  onNavigate: (id: number, type: 'movie' | 'tv') => void;
+  showHeader?: boolean;
+  showRoleBadge?: boolean;
+}> = ({ label, credits, sort, onNavigate, showHeader = true, showRoleBadge = true }) => {
+  const sorted = sortCredits(credits, sort);
+  if (sorted.length === 0) return null;
+
+  return (
+    <div>
+      {showHeader && (
+        <div className="pb-2 mb-1 border-b border-white/[0.06]">
+          <h3 className="font-sans font-semibold text-xs uppercase tracking-widest text-white/30">
+            {label}
+            <span className="ml-2 text-white/50 font-semibold tabular-nums">({sorted.length})</span>
+          </h3>
+        </div>
+      )}
+      <div className="flex flex-col">
+        {sorted.map((credit, i) => (
+          <FilmographyRow
+            key={`${credit.id}-${i}`}
+            credit={credit}
+            onNavigate={onNavigate}
+            showRoleBadge={showRoleBadge}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────
+// FilmographySection — full filter/sort section
+// ─────────────────────────────────────────────
+const FilmographySection: React.FC<{
+  dramas: PersonCredit[];
+  movies: PersonCredit[];
+  variety: PersonCredit[];
+  onNavigate: (id: number, type: 'movie' | 'tv') => void;
+}> = ({ dramas, movies, variety, onNavigate }) => {
+  const [tab, setTab] = useState<FilmographyTab>('all');
+  const [sort, setSort] = useState<SortMode>('year_desc');
+
+  const tabs: { id: FilmographyTab; label: string; count: number }[] = [
+    { id: 'all', label: 'All', count: dramas.length + movies.length + variety.length },
+    { id: 'drama', label: 'Drama', count: dramas.length },
+    { id: 'movies', label: 'Movies', count: movies.length },
+    { id: 'tv', label: 'TV Shows', count: variety.length },
+  ].filter(t => t.id === 'all' || t.count > 0);
+
+  const sortOptions: { id: SortMode; label: string }[] = [
+    { id: 'year_desc', label: 'Year ↓' },
+    { id: 'year_asc', label: 'Year ↑' },
+    { id: 'rating_desc', label: 'Rating ↓' },
+  ];
+
+  return (
+    <motion.section variants={itemVariants} className="mt-0">
+      {/* Section title */}
+      <h2 className="font-sans font-medium text-xs uppercase tracking-widest text-white/30 mb-4">
+        FILMOGRAPHY
+      </h2>
+
+      {/* Filter + Sort bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
+        {/* Category tabs — flat pills */}
+        <div className="flex items-center gap-0.5 flex-wrap">
+          {tabs.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`
+                flex items-center px-3 py-1 rounded-full text-xs font-medium
+                transition-all duration-150 cursor-pointer
+                ${tab === t.id
+                  ? 'bg-white/10 border border-white/20 text-white'
+                  : 'text-white/30 hover:text-white/60 border border-transparent'
+                }
+              `}
+            >
+              {t.label}
+              <span className="ml-1 text-white/20 tabular-nums">({t.count})</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Sort toggles */}
+        <div className="flex items-center gap-0.5">
+          <span className="text-[10px] uppercase tracking-wider text-white/20 mr-2 select-none">Sort:</span>
+          {sortOptions.map(s => (
+            <button
+              key={s.id}
+              onClick={() => setSort(s.id)}
+              className={`
+                px-2 py-1 text-xs transition-colors duration-150 cursor-pointer
+                ${sort === s.id
+                  ? 'text-white font-medium underline underline-offset-2'
+                  : 'text-white/30 hover:text-white/60'
+                }
+              `}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Content */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={tab}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.2 }}
+          className="flex flex-col"
+        >
+          {tab === 'all' ? (
+            /* Flat merged list — all categories sorted together */
+            sortCredits([...dramas, ...movies, ...variety], sort).map((credit, i) => (
+              <FilmographyRow
+                key={`${credit.id}-${i}`}
+                credit={credit}
+                onNavigate={onNavigate}
+                showRoleBadge={true}
+              />
+            ))
+          ) : (
+            <>
+              {tab === 'drama' && (
+                dramas.length > 0
+                  ? <FilmographyListSection
+                      label="Drama / Series"
+                      credits={dramas}
+                      sort={sort}
+                      onNavigate={onNavigate}
+                      showHeader={false}
+                      showRoleBadge={true}
+                    />
+                  : <p className="text-white/30 text-sm text-center py-8">No credits in this category.</p>
+              )}
+              {tab === 'movies' && (
+                movies.length > 0
+                  ? <FilmographyListSection
+                      label="Movies"
+                      credits={movies}
+                      sort={sort}
+                      onNavigate={onNavigate}
+                      showHeader={false}
+                      showRoleBadge={true}
+                    />
+                  : <p className="text-white/30 text-sm text-center py-8">No credits in this category.</p>
+              )}
+              {tab === 'tv' && (
+                variety.length > 0
+                  ? <FilmographyListSection
+                      label="TV Shows / Variety"
+                      credits={variety}
+                      sort={sort}
+                      onNavigate={onNavigate}
+                      showHeader={false}
+                      showRoleBadge={false}
+                    />
+                  : <p className="text-white/30 text-sm text-center py-8">No credits in this category.</p>
+              )}
+            </>
+          )}
+        </motion.div>
+      </AnimatePresence>
+    </motion.section>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Reusable horizontal credit row (Known For)
+// ─────────────────────────────────────────────
 const CreditRow = ({ title, credits }: { title: string, credits: PersonCredit[] }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
@@ -307,26 +608,31 @@ export const PersonPage: React.FC = () => {
     .slice(0, 20);
 
   const movies = rawCredits
-    .filter(c => c.media_type === 'movie' || (!c.media_type && (Boolean(c.title) || Boolean(c.release_date))))
-    .sort((a, b) => {
-      const dateA = a.release_date ? new Date(a.release_date).getTime() : 0;
-      const dateB = b.release_date ? new Date(b.release_date).getTime() : 0;
-      return (isNaN(dateB) ? 0 : dateB) - (isNaN(dateA) ? 0 : dateA);
-    });
+    .filter(c => c.media_type === 'movie' || (!c.media_type && (Boolean(c.title) || Boolean(c.release_date))));
 
-  const shows = rawCredits
-    .filter(c => c.media_type === 'tv' || (!c.media_type && (Boolean(c.name) || Boolean(c.first_air_date))))
-    .sort((a, b) => {
-      const dateA = a.first_air_date ? new Date(a.first_air_date).getTime() : 0;
-      const dateB = b.first_air_date ? new Date(b.first_air_date).getTime() : 0;
-      return (isNaN(dateB) ? 0 : dateB) - (isNaN(dateA) ? 0 : dateA);
-    });
+  const tvCredits = rawCredits
+    .filter(c => c.media_type === 'tv' || (!c.media_type && (Boolean(c.name) || Boolean(c.first_air_date))));
+
+  // Split TV into dramas vs variety/reality by genre_ids
+  const dramas = tvCredits.filter(c => {
+    if (!c.genre_ids || c.genre_ids.length === 0) return true; // default to drama
+    return !c.genre_ids.some(gid => VARIETY_GENRE_IDS.has(gid));
+  });
+
+  const variety = tvCredits.filter(c => {
+    if (!c.genre_ids || c.genre_ids.length === 0) return false;
+    return c.genre_ids.some(gid => VARIETY_GENRE_IDS.has(gid));
+  });
 
   const movieCount = movies.length;
-  const tvCount = shows.length;
+  const tvCount = tvCredits.length;
   const totalCount = rawCredits.length;
 
   const age = calculateAge(details.birthday, details.deathday);
+
+  const handleNavigateToDetail = (creditId: number, type: 'movie' | 'tv') => {
+    navigate({ to: '/detail/$id', params: { id: creditId.toString() }, search: { type } });
+  };
 
   return (
     <div className="min-h-screen bg-black pb-20 overflow-x-hidden">
@@ -358,8 +664,118 @@ export const PersonPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Hero Section */}
-      <div className="relative min-h-[580px] sm:min-h-[640px] md:min-h-[75vh] w-full bg-black overflow-hidden flex items-end justify-center pb-8 sm:pb-12 md:pb-16 pt-20 sm:pt-24">
+      {/* ===================== MOBILE HERO (below md) ===================== */}
+      <div className="md:hidden w-full bg-black">
+        {/* Blurred background photo — 40vh */}
+        <div className="relative w-full h-[40vh] bg-black overflow-hidden">
+          {profileUrl ? (
+            <img
+              src={profileUrl}
+              alt={details.name}
+              className="absolute inset-0 w-full h-full object-cover object-top scale-110 blur-sm"
+            />
+          ) : (
+            <div
+              className="absolute inset-0 w-full h-full"
+              style={{ background: 'radial-gradient(ellipse at 50% 30%, #1a1a2e 0%, #0d0d18 60%, #000000 100%)' }}
+            />
+          )}
+          {/* Radial vignette */}
+          <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.6)_100%)]" />
+          {/* Bottom gradient fade */}
+          <div
+            className="absolute inset-x-0 bottom-0 h-2/3 pointer-events-none"
+            style={{ background: 'linear-gradient(to top, #000000 0%, rgba(0,0,0,0.8) 40%, transparent 100%)' }}
+          />
+        </div>
+
+        {/* Circular avatar — overlapping bottom of backdrop */}
+        <div className="relative z-10 flex justify-center -mt-14">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.45, ease: 'easeOut' as const }}
+            className="w-[100px] h-[100px] rounded-full overflow-hidden border-2 border-white/20 shadow-2xl bg-[#12121e] flex items-center justify-center shrink-0"
+          >
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={details.name}
+                className="w-full h-full object-cover block"
+              />
+            ) : (
+              <User size={40} className="text-[#5a5a72]/60" />
+            )}
+          </motion.div>
+        </div>
+
+        {/* Text + meta block */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="flex flex-col items-center gap-3 px-4 pt-3 pb-6"
+        >
+          {/* Name */}
+          <motion.h1
+            variants={itemVariants}
+            className="font-[Georgia,'Times_New_Roman',serif] font-bold text-white text-xl leading-tight text-center break-words"
+          >
+            {details.name}
+          </motion.h1>
+
+          {/* Department badge */}
+          {details.known_for_department && (
+            <motion.div variants={itemVariants}>
+              <span className="inline-block px-3 py-1 bg-[var(--color-accent-dim)] text-[var(--color-accent)] border border-[var(--color-accent)] rounded-full font-sans text-[10px] tracking-wider uppercase leading-none font-semibold">
+                {details.known_for_department}
+              </span>
+            </motion.div>
+          )}
+
+          {/* Metadata — 2×2 grid */}
+          <motion.div variants={itemVariants} className="grid grid-cols-2 gap-x-6 gap-y-3 text-center mt-1 w-full max-w-xs">
+            {details.birthday && (
+              <div className="flex flex-col">
+                <span className="text-white/40 text-[10px] uppercase tracking-widest font-semibold mb-0.5">Born</span>
+                <span className="text-[#eeeef5] text-xs font-medium leading-snug">{formatDate(details.birthday)}</span>
+              </div>
+            )}
+            {details.birthday && age !== null && (
+              <div className="flex flex-col">
+                <span className="text-white/40 text-[10px] uppercase tracking-widest font-semibold mb-0.5">Age</span>
+                <span className="text-[#eeeef5] text-xs font-medium">{details.deathday ? `† Age ${age}` : age}</span>
+              </div>
+            )}
+            {details.place_of_birth && (
+              <div className="flex flex-col">
+                <span className="text-white/40 text-[10px] uppercase tracking-widest font-semibold mb-0.5">From</span>
+                <span className="text-[#eeeef5] text-xs font-medium leading-snug">{details.place_of_birth}</span>
+              </div>
+            )}
+            <div className="flex flex-col">
+              <span className="text-white/40 text-[10px] uppercase tracking-widest font-semibold mb-0.5">Gender</span>
+              <span className="text-[#eeeef5] text-xs font-medium">
+                {details.gender === 1 ? 'Female' : details.gender === 2 ? 'Male' : '—'}
+              </span>
+            </div>
+          </motion.div>
+
+          {/* Also Known As */}
+          {details.also_known_as && details.also_known_as.length > 0 && (
+            <motion.div variants={itemVariants} className="flex flex-wrap justify-center gap-1.5 mt-1">
+              {details.also_known_as.slice(0, 3).map(alias => (
+                <span key={alias} className="px-2 py-0.5 bg-white/10 text-[#9898b0] text-[10px] rounded font-medium border border-white/5">
+                  {alias}
+                </span>
+              ))}
+            </motion.div>
+          )}
+        </motion.div>
+      </div>
+
+      {/* ===================== DESKTOP HERO (md and above) — UNCHANGED ===================== */}
+      <div className="hidden md:block relative min-h-[75vh] w-full bg-black overflow-hidden">
         {profileUrl ? (
           <img
             src={profileUrl}
@@ -367,44 +783,43 @@ export const PersonPage: React.FC = () => {
             className="absolute inset-0 w-full h-full object-cover object-top"
           />
         ) : (
-          <div 
+          <div
             className="absolute inset-0 w-full h-full"
-            style={{
-              background: 'radial-gradient(ellipse at 50% 30%, #1a1a2e 0%, #0d0d18 60%, #000000 100%)'
-            }}
+            style={{ background: 'radial-gradient(ellipse at 50% 30%, #1a1a2e 0%, #0d0d18 60%, #000000 100%)' }}
           />
         )}
-        
+
         {/* Overlay Gradients */}
-        <div 
-          className="absolute inset-0 pointer-events-none z-10" 
-          style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.88) 100%)' }} 
+        <div
+          className="absolute inset-0 pointer-events-none z-10"
+          style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.88) 100%)' }}
         />
-        <div 
-          className="absolute bottom-0 left-0 right-0 h-48 pointer-events-none z-10" 
-          style={{ background: 'linear-gradient(to top, black 0%, transparent 100%)' }} 
+        <div
+          className="absolute bottom-0 left-0 right-0 h-48 pointer-events-none z-10"
+          style={{ background: 'linear-gradient(to top, black 0%, transparent 100%)' }}
         />
 
         {/* Hero Content Block */}
-        <div className="relative z-20 flex flex-col md:flex-row items-center md:items-end justify-center gap-6 sm:gap-8 md:gap-12 max-w-[1000px] w-full px-4 sm:px-6 md:px-8 pointer-events-auto">
-            
+        <div className="absolute inset-0 flex items-end justify-center pb-16">
+          <div className="relative z-20 flex flex-row items-end justify-center gap-12 max-w-[1000px] w-full px-8 pointer-events-auto">
+
             {/* LEFT: Portrait Photo or Fallback */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.45, ease: "easeOut" as const }}
-              className="relative w-36 min-[375px]:w-44 sm:w-52 md:w-56 shrink-0 aspect-[2/3] rounded-xl shadow-2xl overflow-hidden bg-[#12121e] border border-white/10 flex items-center justify-center"
+              transition={{ duration: 0.45, ease: 'easeOut' as const }}
+              className="relative w-56 shrink-0 aspect-[2/3] rounded-xl shadow-2xl overflow-hidden bg-[#12121e] border border-white/10 flex items-center justify-center"
             >
               {avatarUrl ? (
                 <>
-                  <img 
-                    src={avatarUrl} 
+                  <img
+                    src={avatarUrl}
                     alt={details.name}
                     className="w-full h-full object-cover rounded-xl block"
                   />
-                  <div 
-                    className="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none" 
-                    style={{ background: 'linear-gradient(to top, black 0%, transparent 100%)' }} 
+                  <div
+                    className="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none"
+                    style={{ background: 'linear-gradient(to top, black 0%, transparent 100%)' }}
                   />
                 </>
               ) : (
@@ -418,13 +833,13 @@ export const PersonPage: React.FC = () => {
             </motion.div>
 
             {/* RIGHT: Info */}
-            <motion.div 
+            <motion.div
               variants={containerVariants}
               initial="hidden"
               animate="show"
-              className="flex flex-col gap-3 sm:gap-4 max-w-2xl text-center md:text-left items-center md:items-start w-full"
+              className="flex flex-col gap-4 max-w-2xl text-left items-start w-full"
             >
-              <motion.h1 
+              <motion.h1
                 variants={itemVariants}
                 className="font-[Georgia,'Times_New_Roman',serif] font-bold text-white leading-tight break-words whitespace-normal max-w-full"
                 style={{ fontSize: 'clamp(1.8rem, 4vw, 3.2rem)' }}
@@ -439,30 +854,30 @@ export const PersonPage: React.FC = () => {
                   </span>
                 </motion.div>
               )}
-              
+
               {/* Stats Row */}
-              <motion.div variants={itemVariants} className="flex flex-wrap justify-center md:justify-start items-center gap-4 sm:gap-6 mt-1 text-center md:text-left">
+              <motion.div variants={itemVariants} className="flex flex-wrap justify-start items-center gap-6 mt-1 text-left">
                 {details.birthday && (
                   <div className="flex flex-col">
                     <span className="text-[#5a5a72] text-[10px] uppercase tracking-widest font-semibold mb-0.5">Born</span>
-                    <span className="text-[#eeeef5] text-xs sm:text-sm font-medium">{formatDate(details.birthday)}</span>
+                    <span className="text-[#eeeef5] text-sm font-medium">{formatDate(details.birthday)}</span>
                   </div>
                 )}
                 {details.birthday && age !== null && (
                   <div className="flex flex-col">
                     <span className="text-[#5a5a72] text-[10px] uppercase tracking-widest font-semibold mb-0.5">Age</span>
-                    <span className="text-[#eeeef5] text-xs sm:text-sm font-medium">{details.deathday ? `† Age ${age}` : age}</span>
+                    <span className="text-[#eeeef5] text-sm font-medium">{details.deathday ? `† Age ${age}` : age}</span>
                   </div>
                 )}
                 {details.place_of_birth && (
                   <div className="flex flex-col">
                     <span className="text-[#5a5a72] text-[10px] uppercase tracking-widest font-semibold mb-0.5">From</span>
-                    <span className="text-[#eeeef5] text-xs sm:text-sm font-medium">{details.place_of_birth}</span>
+                    <span className="text-[#eeeef5] text-sm font-medium">{details.place_of_birth}</span>
                   </div>
                 )}
                 <div className="flex flex-col">
                   <span className="text-[#5a5a72] text-[10px] uppercase tracking-widest font-semibold mb-0.5">Gender</span>
-                  <span className="text-[#eeeef5] text-xs sm:text-sm font-medium">
+                  <span className="text-[#eeeef5] text-sm font-medium">
                     {details.gender === 1 ? 'Female' : details.gender === 2 ? 'Male' : '—'}
                   </span>
                 </div>
@@ -470,9 +885,9 @@ export const PersonPage: React.FC = () => {
 
               {/* Also Known As */}
               {details.also_known_as && details.also_known_as.length > 0 && (
-                <motion.div variants={itemVariants} className="flex flex-wrap justify-center md:justify-start gap-1.5 sm:gap-2 mt-1">
+                <motion.div variants={itemVariants} className="flex flex-wrap justify-start gap-2 mt-1">
                   {details.also_known_as.slice(0, 3).map(alias => (
-                    <span key={alias} className="px-2 py-0.5 bg-white/10 text-[#9898b0] text-[10px] sm:text-[11px] rounded font-medium border border-white/5">
+                    <span key={alias} className="px-2 py-0.5 bg-white/10 text-[#9898b0] text-[11px] rounded font-medium border border-white/5">
                       {alias}
                     </span>
                   ))}
@@ -481,6 +896,7 @@ export const PersonPage: React.FC = () => {
             </motion.div>
           </div>
         </div>
+      </div>
 
         {/* Stats Bar */}
         <div className="flex items-center justify-center gap-4 sm:gap-8 md:gap-16 py-4 sm:py-5 bg-[#0a0a10] border-y border-[rgba(255,255,255,0.04)] shadow-inner w-full px-4">
@@ -564,9 +980,19 @@ export const PersonPage: React.FC = () => {
             <>
               {rawCredits.length > 0 ? (
                 <>
+                  {/* Known For — horizontal row (preserved) */}
                   {knownFor.length > 0 && <CreditRow title="KNOWN FOR" credits={knownFor} />}
-                  {movies.length > 0 && <CreditRow title={`MOVIES (${movieCount})`} credits={movies} />}
-                  {shows.length > 0 && <CreditRow title={`TV SHOWS (${tvCount})`} credits={shows} />}
+
+                  {/* Divider */}
+                  <div className="border-t border-[rgba(255,255,255,0.06)] -mt-4 sm:-mt-6" />
+
+                  {/* Vertical filmography listing */}
+                  <FilmographySection
+                    dramas={dramas}
+                    movies={movies}
+                    variety={variety}
+                    onNavigate={handleNavigateToDetail}
+                  />
                 </>
               ) : (
                 <motion.div variants={itemVariants} className="py-12 text-center">

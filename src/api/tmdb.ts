@@ -173,6 +173,8 @@ export interface PersonCredit {
   popularity?: number;
   release_date?: string;
   first_air_date?: string;
+  genre_ids?: number[];
+  episode_count?: number;
 }
 
 export interface TMDBPerson {

@@ -338,8 +338,176 @@ export const DetailPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Backdrop Section */}
-      <div className="relative min-h-[580px] sm:min-h-[660px] md:min-h-[85vh] w-full bg-black overflow-hidden flex items-end justify-center pb-8 sm:pb-12 md:pb-16 pt-20 sm:pt-24">
+      {/* ===================== MOBILE HERO (below md) ===================== */}
+      <div className="md:hidden w-full bg-black">
+        {/* Backdrop image — 45vh */}
+        <div className="relative w-full h-[45vh] bg-black overflow-hidden">
+          {backdropUrl ? (
+            <img
+              src={backdropUrl}
+              alt={title}
+              className="absolute inset-0 w-full h-full object-cover object-[center_top]"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-b from-[#141424] to-black" />
+          )}
+          {/* Radial vignette */}
+          <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.55)_100%)]" />
+          {/* Bottom gradient fade to page background */}
+          <div
+            className="absolute inset-x-0 bottom-0 h-2/3 pointer-events-none"
+            style={{ background: 'linear-gradient(to top, #07070d 0%, rgba(7,7,13,0.85) 40%, transparent 100%)' }}
+          />
+        </div>
+
+        {/* Poster — centered, overlapping bottom of backdrop via negative margin */}
+        {posterUrl && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.45, ease: 'easeOut' as const }}
+            className="relative z-10 mx-auto -mt-16 w-[120px] aspect-[2/3] rounded-xl shadow-2xl overflow-hidden bg-[#12121e] border border-white/10"
+          >
+            <img
+              src={posterUrl}
+              alt={title}
+              className="w-full h-full object-cover block"
+            />
+          </motion.div>
+        )}
+
+        {/* Text + Actions block */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="flex flex-col items-center gap-3 px-4 pt-4 pb-6"
+        >
+          {/* Title */}
+          <motion.h1
+            variants={itemVariants}
+            className="font-[Georgia,'Times_New_Roman',serif] font-bold text-white text-xl leading-tight text-center break-words whitespace-normal max-w-full"
+          >
+            {title}
+          </motion.h1>
+
+          {/* Tagline */}
+          {tagline && (
+            <motion.p variants={itemVariants} className="font-sans font-normal text-xs text-white/60 italic text-center">
+              "{tagline}"
+            </motion.p>
+          )}
+
+          {/* Metadata Inline */}
+          <motion.div variants={itemVariants} className="flex items-center gap-1 flex-wrap font-sans text-xs text-white justify-center">
+            {data.vote_average > 0 && (
+              <span className="text-[#4ade80] flex items-center gap-0.5 font-semibold">
+                ★ {data.vote_average.toFixed(1)}
+              </span>
+            )}
+            {data.vote_average > 0 && <span className="text-white/40">·</span>}
+
+            {releaseYear && (
+              <>
+                <span>{releaseYear}</span>
+                <span className="text-white/40">·</span>
+              </>
+            )}
+
+            {numSeasons !== undefined && numSeasons > 0 ? (
+              <span>{numSeasons} Season{numSeasons !== 1 ? 's' : ''}{numEpisodes ? ` (${numEpisodes} eps)` : ''}</span>
+            ) : runtime ? (
+              <span>{formatRuntime(runtime)}</span>
+            ) : null}
+
+            {(numSeasons || runtime) && data.genres?.length > 0 && <span className="text-white/40">·</span>}
+
+            {data.genres?.length > 0 && (
+              <span className="text-white/80">
+                {data.genres.map((g: any) => g.name).join(' · ')}
+              </span>
+            )}
+
+            {(contentRating || mpaaRating) && (
+              <>
+                <span className="text-white/40">·</span>
+                <span className="font-sans text-[10px] font-bold border border-white/30 rounded px-1.5 py-0.5 text-white/70 tracking-wider">
+                  {contentRating || mpaaRating}
+                </span>
+              </>
+            )}
+          </motion.div>
+
+          {/* Primary Action Buttons — full width row */}
+          <motion.div variants={itemVariants} className="flex items-center gap-2 w-full mt-1">
+            {trailer && (
+              <button
+                onClick={() => window.open(`https://youtube.com/watch?v=${trailer.key}`, '_blank')}
+                className="flex-1 min-h-[44px] rounded-full text-black bg-white font-sans font-bold text-xs flex items-center justify-center gap-2 hover:bg-white/90 active:scale-[0.98] transition-all cursor-pointer shadow-md"
+              >
+                <Play size={15} fill="currentColor" stroke="none" />
+                Watch Trailer
+              </button>
+            )}
+            <div className={trailer ? 'flex-1' : 'w-full'}>
+              <WatchlistButton
+                id={Number(id)}
+                type={type as 'movie' | 'tv'}
+                title={title || ''}
+                posterPath={data.poster_path}
+                year={releaseYear}
+                totalEpisodes={numEpisodes}
+              />
+            </div>
+          </motion.div>
+
+          {/* Icon Action Row */}
+          <motion.div variants={itemVariants} className="flex items-center justify-center gap-2.5">
+            <button title="Like" className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white hover:bg-white/10 transition-all cursor-pointer">
+              <ThumbsUp size={15} />
+            </button>
+            <button title="Not Interested" className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white hover:bg-white/10 transition-all cursor-pointer">
+              <Minus size={15} />
+            </button>
+            <button title="Favorite" className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white hover:bg-white/10 transition-all cursor-pointer">
+              <Heart size={15} />
+            </button>
+            <div className="relative">
+              <button
+                title="Share"
+                onClick={handleShare}
+                className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white hover:bg-white/10 transition-all cursor-pointer"
+              >
+                <Share2 size={15} />
+              </button>
+              {showCopied && (
+                <div className="absolute -top-9 left-1/2 -translate-x-1/2 bg-[var(--color-surface)] text-white text-xs font-sans font-semibold px-3 py-1 rounded shadow-lg border border-[var(--color-border-subtle)] whitespace-nowrap">
+                  Link copied!
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Watch Providers */}
+          {watchProviders && watchProviders.length > 0 && (
+            <motion.div variants={itemVariants} className="flex items-center gap-2 flex-wrap justify-center mt-1">
+              <span className="font-sans text-[10px] text-white/60 uppercase tracking-wider">Stream on</span>
+              {watchProviders.slice(0, 5).map((p: any) => (
+                <img
+                  key={p.provider_id}
+                  src={`https://image.tmdb.org/t/p/w45${p.logo_path}`}
+                  alt={p.provider_name}
+                  title={p.provider_name}
+                  className="w-7 h-7 rounded-lg object-cover border border-white/10"
+                />
+              ))}
+            </motion.div>
+          )}
+        </motion.div>
+      </div>
+
+      {/* ===================== DESKTOP HERO (md and above) — UNCHANGED ===================== */}
+      <div className="hidden md:block relative min-h-[85vh] w-full bg-black overflow-hidden">
         {backdropUrl ? (
           <img
             src={backdropUrl}
@@ -349,169 +517,166 @@ export const DetailPage: React.FC = () => {
         ) : (
           <div className="absolute inset-0 bg-gradient-to-b from-[#141424] to-black" />
         )}
-        
+
         {/* Gradient Overlays */}
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.7)_100%)]" />
-        <div 
-          className="absolute inset-0 pointer-events-none" 
-          style={{ background: 'linear-gradient(to top, #07070d 0%, rgba(7,7,13,0.85) 25%, rgba(7,7,13,0.4) 60%, rgba(7,7,13,0.7) 100%)' }} 
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: 'linear-gradient(to top, #07070d 0%, rgba(7,7,13,0.85) 25%, rgba(7,7,13,0.4) 60%, rgba(7,7,13,0.7) 100%)' }}
         />
 
         {/* Main Info Block */}
-        <div className="relative z-20 flex flex-col md:flex-row items-center md:items-end justify-center gap-6 sm:gap-8 md:gap-12 max-w-[1000px] w-full px-4 sm:px-6 md:px-8 pointer-events-auto">
-          
-          {/* LEFT: Poster */}
-          {posterUrl && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.45, ease: "easeOut" as const }}
-              className="relative w-36 min-[375px]:w-44 sm:w-52 md:w-64 shrink-0 rounded-xl shadow-2xl overflow-hidden aspect-[2/3] bg-[#12121e] border border-white/10"
-            >
-              <img 
-                src={posterUrl} 
-                alt={title}
-                className="w-full h-full object-cover rounded-xl block"
-              />
-              <div 
-                className="absolute inset-x-0 bottom-0 h-1/3 rounded-b-xl pointer-events-none" 
-                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)' }} 
-              />
-            </motion.div>
-          )}
+        <div className="absolute inset-0 flex items-end justify-center pb-16">
+          <div className="relative z-20 flex flex-row items-end justify-center gap-12 max-w-[1000px] w-full px-8 pointer-events-auto">
 
-          {/* RIGHT: Info Content */}
-          <motion.div 
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
-            className="flex flex-col gap-3 sm:gap-4 max-w-2xl text-center md:text-left items-center md:items-start w-full"
-          >
-            {/* Title */}
-            <motion.h1 
-              variants={itemVariants}
-              className="font-[Georgia,'Times_New_Roman',serif] font-bold text-white leading-tight break-words whitespace-normal max-w-full"
-              style={{ fontSize: 'clamp(1.6rem, 4vw, 3rem)' }}
-            >
-              {title}
-            </motion.h1>
-
-            {/* Tagline */}
-            {tagline && (
-              <motion.p variants={itemVariants} className="font-sans font-normal text-xs sm:text-sm md:text-base text-white/70 italic">
-                "{tagline}"
-              </motion.p>
-            )}
-
-            {/* Metadata Inline */}
-            <motion.div variants={itemVariants} className="flex items-center gap-2 flex-wrap font-sans text-xs sm:text-sm text-white justify-center md:justify-start">
-              {data.vote_average > 0 && (
-                <span className="text-[#4ade80] flex items-center gap-1 font-semibold">
-                  ★ {data.vote_average.toFixed(1)}
-                </span>
-              )}
-              {data.vote_average > 0 && <span>·</span>}
-              
-              {releaseYear && (
-                <>
-                  <span>{releaseYear}</span>
-                  <span>·</span>
-                </>
-              )}
-              
-              {numSeasons !== undefined && numSeasons > 0 ? (
-                <>
-                  <span>{numSeasons} Season{numSeasons !== 1 ? 's' : ''} {numEpisodes ? `(${numEpisodes} eps)` : ''}</span>
-                </>
-              ) : runtime ? (
-                <>
-                  <span>{formatRuntime(runtime)}</span>
-                </>
-              ) : null}
-              
-              {(numSeasons || runtime) && data.genres?.length > 0 && <span>·</span>}
-              
-              {data.genres?.length > 0 && (
-                <span className="text-white/80">
-                  {data.genres.map((g: any) => g.name).join(' · ')}
-                </span>
-              )}
-
-              {(contentRating || mpaaRating) && (
-                <>
-                  <span>·</span>
-                  <span className="font-sans text-[10px] font-bold border border-white/30 rounded px-1.5 py-0.5 text-white/70 tracking-wider">
-                    {contentRating || mpaaRating}
-                  </span>
-                </>
-              )}
-            </motion.div>
-
-            {/* Action Buttons */}
-            <motion.div variants={itemVariants} className="flex items-center justify-center md:justify-start gap-3 mt-1 sm:mt-2 flex-wrap w-full sm:w-auto">
-              {trailer && (
-                <button 
-                  onClick={() => window.open(`https://youtube.com/watch?v=${trailer.key}`, '_blank')}
-                  className="w-full sm:w-auto flex-1 sm:flex-none min-h-[44px] px-5 sm:px-6 rounded-full text-black bg-white font-sans font-bold text-xs sm:text-sm flex items-center justify-center gap-2 hover:bg-white/90 active:scale-[0.98] transition-all cursor-pointer shadow-md"
-                >
-                  <Play size={16} fill="currentColor" stroke="none" />
-                  Watch Trailer
-                </button>
-              )}
-              <WatchlistButton 
-                id={Number(id)} 
-                type={type as 'movie' | 'tv'} 
-                title={title || ''} 
-                posterPath={data.poster_path} 
-                year={releaseYear} 
-                totalEpisodes={numEpisodes} 
-              />
-            </motion.div>
-
-            {/* Icon Action Row */}
-            <motion.div variants={itemVariants} className="flex items-center justify-center md:justify-start gap-2.5 mt-1">
-              <button title="Like" className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white hover:bg-white/10 transition-all cursor-pointer">
-                <ThumbsUp size={15} />
-              </button>
-              <button title="Not Interested" className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white hover:bg-white/10 transition-all cursor-pointer">
-                <Minus size={15} />
-              </button>
-              <button title="Favorite" className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white hover:bg-white/10 transition-all cursor-pointer">
-                <Heart size={15} />
-              </button>
-              <div className="relative">
-                <button 
-                  title="Share" 
-                  onClick={handleShare}
-                  className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white hover:bg-white/10 transition-all cursor-pointer"
-                >
-                  <Share2 size={15} />
-                </button>
-                {showCopied && (
-                  <div className="absolute -top-9 left-1/2 -translate-x-1/2 bg-[var(--color-surface)] text-white text-xs font-sans font-semibold px-3 py-1 rounded shadow-lg border border-[var(--color-border-subtle)] whitespace-nowrap">
-                    Link copied!
-                  </div>
-                )}
-              </div>
-            </motion.div>
-
-            {/* Watch Providers */}
-            {watchProviders && watchProviders.length > 0 && (
-              <motion.div variants={itemVariants} className="flex items-center gap-2 flex-wrap justify-center md:justify-start mt-1">
-                <span className="font-sans text-[10px] text-white/60 uppercase tracking-wider">Stream on</span>
-                {watchProviders.slice(0, 5).map((p: any) => (
-                  <img
-                    key={p.provider_id}
-                    src={`https://image.tmdb.org/t/p/w45${p.logo_path}`}
-                    alt={p.provider_name}
-                    title={p.provider_name}
-                    className="w-7 h-7 rounded-lg object-cover border border-white/10"
-                  />
-                ))}
+            {/* LEFT: Poster */}
+            {posterUrl && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.45, ease: 'easeOut' as const }}
+                className="relative w-64 shrink-0 rounded-xl shadow-2xl overflow-hidden aspect-[2/3] bg-[#12121e] border border-white/10"
+              >
+                <img
+                  src={posterUrl}
+                  alt={title}
+                  className="w-full h-full object-cover rounded-xl block"
+                />
+                <div
+                  className="absolute inset-x-0 bottom-0 h-1/3 rounded-b-xl pointer-events-none"
+                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)' }}
+                />
               </motion.div>
             )}
 
-          </motion.div>
+            {/* RIGHT: Info Content */}
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              className="flex flex-col gap-4 max-w-2xl text-left items-start w-full"
+            >
+              {/* Title */}
+              <motion.h1
+                variants={itemVariants}
+                className="font-[Georgia,'Times_New_Roman',serif] font-bold text-white leading-tight break-words whitespace-normal max-w-full"
+                style={{ fontSize: 'clamp(1.6rem, 4vw, 3rem)' }}
+              >
+                {title}
+              </motion.h1>
+
+              {/* Tagline */}
+              {tagline && (
+                <motion.p variants={itemVariants} className="font-sans font-normal text-base text-white/70 italic">
+                  "{tagline}"
+                </motion.p>
+              )}
+
+              {/* Metadata Inline */}
+              <motion.div variants={itemVariants} className="flex items-center gap-2 flex-wrap font-sans text-sm text-white justify-start">
+                {data.vote_average > 0 && (
+                  <span className="text-[#4ade80] flex items-center gap-1 font-semibold">
+                    ★ {data.vote_average.toFixed(1)}
+                  </span>
+                )}
+                {data.vote_average > 0 && <span>·</span>}
+
+                {releaseYear && (
+                  <>
+                    <span>{releaseYear}</span>
+                    <span>·</span>
+                  </>
+                )}
+
+                {numSeasons !== undefined && numSeasons > 0 ? (
+                  <span>{numSeasons} Season{numSeasons !== 1 ? 's' : ''} {numEpisodes ? `(${numEpisodes} eps)` : ''}</span>
+                ) : runtime ? (
+                  <span>{formatRuntime(runtime)}</span>
+                ) : null}
+
+                {(numSeasons || runtime) && data.genres?.length > 0 && <span>·</span>}
+
+                {data.genres?.length > 0 && (
+                  <span className="text-white/80">
+                    {data.genres.map((g: any) => g.name).join(' · ')}
+                  </span>
+                )}
+
+                {(contentRating || mpaaRating) && (
+                  <>
+                    <span>·</span>
+                    <span className="font-sans text-[10px] font-bold border border-white/30 rounded px-1.5 py-0.5 text-white/70 tracking-wider">
+                      {contentRating || mpaaRating}
+                    </span>
+                  </>
+                )}
+              </motion.div>
+
+              {/* Action Buttons */}
+              <motion.div variants={itemVariants} className="flex items-center justify-start gap-3 mt-2 flex-wrap">
+                {trailer && (
+                  <button
+                    onClick={() => window.open(`https://youtube.com/watch?v=${trailer.key}`, '_blank')}
+                    className="min-h-[44px] px-6 rounded-full text-black bg-white font-sans font-bold text-sm flex items-center justify-center gap-2 hover:bg-white/90 active:scale-[0.98] transition-all cursor-pointer shadow-md"
+                  >
+                    <Play size={16} fill="currentColor" stroke="none" />
+                    Watch Trailer
+                  </button>
+                )}
+                <WatchlistButton
+                  id={Number(id)}
+                  type={type as 'movie' | 'tv'}
+                  title={title || ''}
+                  posterPath={data.poster_path}
+                  year={releaseYear}
+                  totalEpisodes={numEpisodes}
+                />
+              </motion.div>
+
+              {/* Icon Action Row */}
+              <motion.div variants={itemVariants} className="flex items-center justify-start gap-2.5 mt-1">
+                <button title="Like" className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white hover:bg-white/10 transition-all cursor-pointer">
+                  <ThumbsUp size={15} />
+                </button>
+                <button title="Not Interested" className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white hover:bg-white/10 transition-all cursor-pointer">
+                  <Minus size={15} />
+                </button>
+                <button title="Favorite" className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white hover:bg-white/10 transition-all cursor-pointer">
+                  <Heart size={15} />
+                </button>
+                <div className="relative">
+                  <button
+                    title="Share"
+                    onClick={handleShare}
+                    className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white hover:bg-white/10 transition-all cursor-pointer"
+                  >
+                    <Share2 size={15} />
+                  </button>
+                  {showCopied && (
+                    <div className="absolute -top-9 left-1/2 -translate-x-1/2 bg-[var(--color-surface)] text-white text-xs font-sans font-semibold px-3 py-1 rounded shadow-lg border border-[var(--color-border-subtle)] whitespace-nowrap">
+                      Link copied!
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+
+              {/* Watch Providers */}
+              {watchProviders && watchProviders.length > 0 && (
+                <motion.div variants={itemVariants} className="flex items-center gap-2 flex-wrap justify-start mt-1">
+                  <span className="font-sans text-[10px] text-white/60 uppercase tracking-wider">Stream on</span>
+                  {watchProviders.slice(0, 5).map((p: any) => (
+                    <img
+                      key={p.provider_id}
+                      src={`https://image.tmdb.org/t/p/w45${p.logo_path}`}
+                      alt={p.provider_name}
+                      title={p.provider_name}
+                      className="w-7 h-7 rounded-lg object-cover border border-white/10"
+                    />
+                  ))}
+                </motion.div>
+              )}
+            </motion.div>
+          </div>
         </div>
       </div>
 
