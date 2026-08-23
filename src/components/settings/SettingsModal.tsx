@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Key, Sliders, Eye, EyeOff } from 'lucide-react';
+import { X, User, Key, Sliders, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { useKeyStore } from '../../store/keyStore';
 import { useFilterStore, type DramaRegion } from '../../store/filterStore';
 import { useHiddenStore } from '../../store/hiddenStore';
+import { useApiStatsStore } from '../../store/apiStatsStore';
+import { getRateLimitStatus } from '../../lib/rateLimiter';
 
 interface SettingsModalProps {
   open: boolean;
   onClose: () => void;
 }
 
-type TabType = 'profile' | 'apikey' | 'filters';
+type TabType = 'profile' | 'apikey' | 'filters' | 'api';
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
   const [activeTab, setActiveTab] = useState<TabType>('filters');
@@ -44,12 +46,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
               <TabButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<User size={16} />} label="Profile" />
               <TabButton active={activeTab === 'apikey'} onClick={() => setActiveTab('apikey')} icon={<Key size={16} />} label="API Key" />
               <TabButton active={activeTab === 'filters'} onClick={() => setActiveTab('filters')} icon={<Sliders size={16} />} label="Filters" />
+              <TabButton active={activeTab === 'api'} onClick={() => setActiveTab('api')} icon={<KeyRound size={16} />} label="API" />
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
               {activeTab === 'profile' && <ProfileTab />}
               {activeTab === 'apikey' && <ApiKeyTab />}
               {activeTab === 'filters' && <FiltersTab />}
+              {activeTab === 'api' && <ApiTab onTabChange={setActiveTab} />}
             </div>
           </motion.div>
         </>
@@ -292,3 +296,118 @@ const ToggleOption = ({ label, description, value, onChange }: { label: string, 
     </button>
   </div>
 );
+
+const ApiTab = ({ onTabChange }: { onTabChange: (tab: TabType) => void }) => {
+  const { apiKey } = useKeyStore();
+  const stats = useApiStatsStore();
+  const [rateLimit, setRateLimit] = useState(() => getRateLimitStatus());
+
+  const usagePercent = Math.min(100, (rateLimit.used / rateLimit.max) * 100);
+  let progressColor = "bg-green-500";
+  if (rateLimit.used >= 30) progressColor = "bg-red-500";
+  else if (rateLimit.used >= 20) progressColor = "bg-yellow-500";
+
+  return (
+    <div className="flex flex-col gap-8">
+      {/* SECTION 1: CONNECTION STATUS */}
+      <div>
+        <h3 className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-3">Connection Status</h3>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border border-[var(--color-border-subtle)] rounded-xl p-4 bg-[var(--color-surface)]/30 gap-4">
+          <div className="flex items-center gap-3">
+            <div className={`w-2.5 h-2.5 rounded-full ${apiKey ? 'bg-green-500' : 'bg-red-500'}`} />
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                {apiKey ? 'Connected' : 'No API Key'}
+              </span>
+              {apiKey && (
+                <span className="text-xs text-[var(--color-text-muted)] font-mono mt-0.5">
+                  key: {apiKey.slice(0, 4)}...{apiKey.slice(-4)}
+                </span>
+              )}
+            </div>
+          </div>
+          <button 
+            onClick={() => onTabChange('apikey')}
+            className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs font-medium transition-colors whitespace-nowrap"
+          >
+            {apiKey ? 'Change Key' : 'Set up API Key'}
+          </button>
+        </div>
+      </div>
+
+      {/* SECTION 2: SESSION STATS */}
+      <div>
+        <h3 className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-3">Session Stats</h3>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-white/5 rounded-xl p-3 text-center flex flex-col items-center justify-center">
+            <span className="text-xl font-bold text-white">{stats.totalRequests}</span>
+            <span className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">Requests made</span>
+          </div>
+          <div className="bg-white/5 rounded-xl p-3 text-center flex flex-col items-center justify-center">
+            <span className="text-xl font-bold text-white">{stats.cacheHits}</span>
+            <span className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">Cache Hits</span>
+          </div>
+          <div className="bg-white/5 rounded-xl p-3 text-center flex flex-col items-center justify-center">
+            <span className="text-xl font-bold text-white">{stats.rateLimitHits}</span>
+            <span className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">Throttled</span>
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 3: RATE LIMIT */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-[10px] font-semibold text-white/30 uppercase tracking-widest">Rate Limit (Current Window)</h3>
+          <button 
+            onClick={() => setRateLimit(getRateLimitStatus())}
+            className="text-[10px] bg-white/5 hover:bg-white/10 text-white/70 px-2 py-1 rounded transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
+        <div className="flex flex-col gap-2">
+          <div className="flex justify-between items-center text-sm font-medium">
+            <span className="text-[var(--color-text-muted)]">API Usage</span>
+            <span className="text-[var(--color-text-primary)]">{rateLimit.used} / {rateLimit.max}</span>
+          </div>
+          <div className="bg-white/10 rounded-full h-1.5 w-full overflow-hidden">
+            <div 
+              className={`h-full transition-all duration-300 ${progressColor}`} 
+              style={{ width: `${usagePercent}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 4: LAST ERROR */}
+      <div>
+        <h3 className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-3">Last Error</h3>
+        {stats.lastError ? (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex flex-col gap-2">
+            <div className="flex justify-between items-start">
+              <span className="text-sm font-bold text-red-400 flex items-center gap-2">
+                <span className="text-lg leading-none">⚠</span> Error at {stats.lastError.time}
+              </span>
+              <button 
+                onClick={stats.clearLastError}
+                className="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-300 px-2 py-1 rounded transition-colors"
+              >
+                Clear
+              </button>
+            </div>
+            <div className="text-xs font-mono text-red-300/70 bg-black/20 p-2 rounded break-all">
+              {stats.lastError.endpoint}
+            </div>
+            <div className="text-sm text-red-200">
+              {stats.lastError.message}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
+            <span className="text-green-500">✓</span> No errors this session
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

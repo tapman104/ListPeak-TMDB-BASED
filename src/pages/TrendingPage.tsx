@@ -34,7 +34,7 @@ export const TrendingPage: React.FC = () => {
   const dismissed = useDismissedStore((state) => state.dismissed);
 
   const { data: trendingWeek, isLoading } = useQuery({
-    queryKey: ['trending-week-multiple'],
+    queryKey: ['trending-week', 'all'],
     queryFn: async ({ signal }) => {
       // Fetching 3 pages to get at least 50 results (20 items per page)
       const [page1, page2, page3] = await Promise.all([

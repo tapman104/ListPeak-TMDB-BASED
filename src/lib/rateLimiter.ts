@@ -1,8 +1,16 @@
 // src/lib/rateLimiter.ts
+import { useApiStatsStore } from '../store/apiStatsStore';
 const WINDOW_MS = 10_000;
 const MAX_REQUESTS = 35;
 
 const timestamps: number[] = [];
+let queueCount = 0;
+
+export function getRateLimitStatus(): { used: number; max: number; windowMs: number } {
+  const now = Date.now();
+  const recent = timestamps.filter(t => now - t < WINDOW_MS);
+  return { used: recent.length, max: MAX_REQUESTS, windowMs: WINDOW_MS };
+}
 
 export async function throttledFetch(
   url: string,
@@ -20,9 +28,14 @@ export async function throttledFetch(
   }
 
   if (timestamps.length >= MAX_REQUESTS) {
+    const position = queueCount++;
     // Calculate how long to wait until the oldest request falls out of window
-    const waitMs = timestamps[0] + WINDOW_MS - now + 50; // +50ms buffer
+    const waitMs = timestamps[0] + WINDOW_MS - now + 50 + (position * 60); // +50ms buffer + stagger
     
+    if (waitMs > 0) {
+      useApiStatsStore.getState().incrementRateLimitHits();
+    }
+
     await new Promise<void>((resolve, reject) => {
       const timeoutId = setTimeout(resolve, waitMs);
       if (options?.signal) {
@@ -33,8 +46,12 @@ export async function throttledFetch(
       }
     });
     
+    queueCount = Math.max(0, queueCount - 1);
     return throttledFetch(url, options); // retry after wait
   }
+
+  // reset queue when under limit
+  queueCount = 0;
 
   timestamps.push(Date.now());
   

@@ -105,13 +105,6 @@ export const DetailPage: React.FC = () => {
     staleTime: 1000 * 60 * 5,
   });
 
-  const { data: creditsData, isLoading: creditsLoading } = useQuery({
-    queryKey: ['credits', type, id],
-    queryFn: ({ signal }) => type === 'tv' ? tmdb!.getTVCredits(id, { signal }) : tmdb!.getMovieCredits(id, { signal }),
-    enabled: !!id && !!apiKey && !!tmdb && !!type && !!data, // Stagger after detail
-    staleTime: 1000 * 60 * 10,
-  });
-
   const { data: searchResults, isLoading: searchLoading } = useQuery({
     queryKey: ['search', debouncedSearchQuery],
     queryFn: ({ signal }) => tmdb!.searchMulti(debouncedSearchQuery, 1, { signal }),
@@ -1180,31 +1173,16 @@ export const DetailPage: React.FC = () => {
 
         {activeTab === 'cast' && (
           <motion.div variants={containerVariants} initial="hidden" animate="show" className="flex flex-col gap-10">
-            {creditsLoading ? (
-              <div className="flex flex-col gap-8">
-                <div>
-                  <div className="h-4 w-24 rounded bg-[#1c1c2e] animate-shimmer mb-6" />
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
-                    {Array.from({ length: 8 }).map((_, i) => (
-                      <div key={i} className="flex flex-col items-center gap-2">
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#1c1c2e] animate-shimmer" />
-                        <div className="h-3 w-16 bg-[#1c1c2e] animate-shimmer rounded mt-1" />
-                        <div className="h-2 w-12 bg-[#1c1c2e] animate-shimmer rounded" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : creditsData ? (
+            {data?.credits ? (
               <>
                 {/* Cast */}
-                {creditsData.cast && creditsData.cast.length > 0 && (
+                {data.credits.cast && data.credits.cast.length > 0 && (
                   <motion.section variants={itemVariants}>
                     <h2 className="font-sans font-medium text-xs uppercase tracking-[0.15em] text-white/60 mb-6">
                       CAST
                     </h2>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
-                      {creditsData.cast.map(actor => (
+                      {data.credits.cast.map((actor: any) => (
                         <div 
                           key={`cast-${actor.id}`} 
                           className="flex flex-col items-center gap-2 cursor-pointer group"
@@ -1237,10 +1215,10 @@ export const DetailPage: React.FC = () => {
 
                 {/* Crew */}
                 {(() => {
-                  if (!creditsData.crew || creditsData.crew.length === 0) return null;
+                  if (!data.credits.crew || data.credits.crew.length === 0) return null;
                   
                   const deptMap: Record<string, any[]> = {};
-                  creditsData.crew.forEach(member => {
+                  data.credits.crew.forEach((member: any) => {
                     if (!deptMap[member.department]) deptMap[member.department] = [];
                     const existing = deptMap[member.department].find(m => m.id === member.id);
                     if (!existing) {

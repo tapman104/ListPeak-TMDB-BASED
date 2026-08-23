@@ -1,4 +1,5 @@
 import { throttledFetch } from '../lib/rateLimiter';
+import { useApiStatsStore } from '../store/apiStatsStore';
 
 const BASE_URL = 'https://api.themoviedb.org/3';
 
@@ -196,15 +197,33 @@ export type SearchResultItem = (TMDBMedia & { media_type?: 'movie' | 'tv' }) | (
 
 export const createTMDBClient = (apiKey: string) => {
   const fetchTMDB = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
-    const separator = endpoint.includes('?') ? '&' : '?';
-    const response = await throttledFetch(`${BASE_URL}${endpoint}${separator}api_key=${apiKey}&language=en-US`, init);
-    if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error('API key invalid or expired');
+    try {
+      const separator = endpoint.includes('?') ? '&' : '?';
+      const response = await throttledFetch(`${BASE_URL}${endpoint}${separator}api_key=${apiKey}&language=en-US`, init);
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('API key invalid or expired');
+        }
+        throw new Error(`TMDB API Error: ${response.status}`);
       }
-      throw new Error(`TMDB API Error: ${response.status}`);
+      
+      useApiStatsStore.getState().incrementRequests();
+      return await response.json();
+    } catch (error: any) {
+      if (error instanceof Error && 
+          (error.name === 'AbortError' || 
+           error.message.includes('aborted') ||
+           error.message.includes('signal'))) {
+        throw error;
+      }
+      useApiStatsStore.getState().setLastError({
+        message: error instanceof Error ? error.message : 'Unknown error',
+        endpoint: endpoint,
+        time: new Date().toLocaleTimeString()
+      });
+      throw error;
     }
-    return response.json();
   };
 
   return {

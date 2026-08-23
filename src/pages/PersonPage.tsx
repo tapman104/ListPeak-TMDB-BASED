@@ -138,14 +138,14 @@ const FilmographyRow: React.FC<{
   return (
     <motion.button
       onClick={() => onNavigate(credit.id, mediaType)}
-      className="w-full flex items-center gap-3 px-2 sm:px-3 py-2.5 rounded-lg
+      className="w-full flex items-center gap-4 px-2 sm:px-4 py-3 rounded-lg
                  hover:bg-white/[0.04] active:bg-white/[0.06]
                  transition-colors duration-150 text-left group cursor-pointer"
       whileHover={{ x: 1 }}
       transition={{ duration: 0.12 }}
     >
-      {/* Thumbnail — fixed 52×75px */}
-      <div className="w-[64px] h-[92px] rounded-lg overflow-hidden shrink-0 bg-white/[0.06]">
+      {/* Thumbnail */}
+      <div className="w-[72px] h-[104px] rounded-lg overflow-hidden shrink-0 bg-white/[0.06]">
         {thumbUrl ? (
           <img
             src={thumbUrl}
@@ -159,23 +159,23 @@ const FilmographyRow: React.FC<{
       </div>
 
       {/* Year — fixed width, mono */}
-      <span className="w-12 shrink-0 text-white/50 text-xs font-mono tabular-nums">
+      <span className="w-12 shrink-0 text-white/60 text-sm font-mono tabular-nums">
         {year > 0 ? year : '—'}
       </span>
 
       {/* Title + character — flex-1 */}
       <div className="flex-1 min-w-0">
-        <p className="text-white text-sm font-medium leading-snug truncate group-hover:text-white/90 transition-colors">
+        <p className="text-white text-base font-medium leading-snug truncate group-hover:text-white transition-colors">
           {title}
         </p>
         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
           {(credit.character || credit.job) && (
-            <span className="text-white/50 text-xs leading-none truncate">
+            <span className="text-white/50 text-sm leading-none truncate">
               {credit.character ? `as ${credit.character}` : credit.job}
             </span>
           )}
           {role && (
-            <span className="shrink-0 px-1.5 py-0.5 text-[10px] leading-none text-white/40 bg-white/5 border border-white/10 rounded">
+            <span className="shrink-0 px-1.5 py-0.5 text-xs leading-none text-white/40 bg-white/5 border border-white/10 rounded">
               {role}
             </span>
           )}
@@ -183,7 +183,7 @@ const FilmographyRow: React.FC<{
       </div>
 
       {/* Episode count — fixed width */}
-      <span className="w-8 shrink-0 text-center text-white/40 text-xs tabular-nums">
+      <span className="w-8 shrink-0 text-center text-white/50 text-sm tabular-nums">
         {credit.episode_count != null && credit.episode_count > 0 ? `${credit.episode_count}ep` : ''}
       </span>
 
@@ -191,8 +191,8 @@ const FilmographyRow: React.FC<{
       <div className="w-12 shrink-0 flex items-center justify-end gap-0.5">
         {rating && (
           <>
-            <Star size={12} className="text-yellow-400 fill-yellow-400 shrink-0" />
-            <span className="text-white/70 text-xs tabular-nums font-medium">{rating}</span>
+            <Star size={14} className="text-yellow-400 fill-yellow-400 shrink-0" />
+            <span className="text-white text-sm tabular-nums font-semibold">{rating}</span>
           </>
         )}
       </div>
@@ -247,15 +247,28 @@ const FilmographySection: React.FC<{
   variety: PersonCredit[];
   onNavigate: (id: number, type: 'movie' | 'tv') => void;
 }> = ({ dramas, movies, variety, onNavigate }) => {
-  const [tab, setTab] = useState<FilmographyTab>('all');
+  const [tab, setTab] = useState<FilmographyTab>('drama');
   const [sort, setSort] = useState<SortMode>('year_desc');
+  const filmographyRef = useRef<HTMLDivElement>(null);
+  const [isSticky, setIsSticky] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!filmographyRef.current) return;
+      const rect = filmographyRef.current.getBoundingClientRect();
+      // Lock when top of filmography section reaches navbar bottom (64px)
+      setIsSticky(rect.top <= 64);
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const tabs: { id: FilmographyTab; label: string; count: number }[] = [
-    { id: 'all' as FilmographyTab, label: 'All', count: dramas.length + movies.length + variety.length },
     { id: 'drama' as FilmographyTab, label: 'Drama', count: dramas.length },
     { id: 'movies' as FilmographyTab, label: 'Movies', count: movies.length },
     { id: 'tv' as FilmographyTab, label: 'TV Shows', count: variety.length },
-  ].filter(t => t.id === 'all' || t.count > 0);
+  ].filter(t => t.count > 0);
 
   const sortOptions: { id: SortMode; label: string }[] = [
     { id: 'year_desc', label: 'Year ↓' },
@@ -263,56 +276,69 @@ const FilmographySection: React.FC<{
     { id: 'rating_desc', label: 'Rating ↓' },
   ];
 
+  const renderTabContent = () => (
+    <>
+      <div className="flex items-center gap-0.5 flex-wrap">
+        {tabs.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`
+              flex items-center px-4 py-1.5 rounded-full text-sm font-medium
+              transition-all duration-150 cursor-pointer
+              ${tab === t.id
+                ? 'bg-white/10 border border-white/20 text-white font-semibold'
+                : 'text-white/30 hover:text-white/60 border border-transparent'
+              }
+            `}
+          >
+            {t.label}
+            <span className="ml-1 text-white/20 tabular-nums">({t.count})</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-0.5">
+        <span className="text-[10px] uppercase tracking-wider text-white/20 mr-2 select-none">Sort:</span>
+        {sortOptions.map(s => (
+          <button
+            key={s.id}
+            onClick={() => setSort(s.id)}
+            className={`
+              px-2 py-1 text-sm transition-colors duration-150 cursor-pointer
+              ${sort === s.id
+                ? 'text-white font-medium underline underline-offset-2'
+                : 'text-white/30 hover:text-white/60'
+              }
+            `}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+    </>
+  );
+
   return (
-    <motion.section variants={itemVariants} className="mt-0">
+    <motion.section ref={filmographyRef} variants={itemVariants} className="mt-0 relative">
       {/* Section title */}
-      <h2 className="font-sans font-medium text-xs uppercase tracking-widest text-white/30 mb-4">
+      <h2 className="font-sans font-medium text-sm uppercase tracking-widest text-white/30 mb-4">
         FILMOGRAPHY
       </h2>
 
-      {/* Filter + Sort bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
-        {/* Category tabs — flat pills */}
-        <div className="flex items-center gap-0.5 flex-wrap">
-          {tabs.map(t => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`
-                flex items-center px-3 py-1 rounded-full text-xs font-medium
-                transition-all duration-150 cursor-pointer
-                ${tab === t.id
-                  ? 'bg-white/10 border border-white/20 text-white'
-                  : 'text-white/30 hover:text-white/60 border border-transparent'
-                }
-              `}
-            >
-              {t.label}
-              <span className="ml-1 text-white/20 tabular-nums">({t.count})</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Sort toggles */}
-        <div className="flex items-center gap-0.5">
-          <span className="text-[10px] uppercase tracking-wider text-white/20 mr-2 select-none">Sort:</span>
-          {sortOptions.map(s => (
-            <button
-              key={s.id}
-              onClick={() => setSort(s.id)}
-              className={`
-                px-2 py-1 text-xs transition-colors duration-150 cursor-pointer
-                ${sort === s.id
-                  ? 'text-white font-medium underline underline-offset-2'
-                  : 'text-white/30 hover:text-white/60'
-                }
-              `}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+      {/* Original Inline Filter + Sort bar — stays in normal flow always */}
+      <div className={`flex flex-wrap items-center justify-between gap-2 mb-5 py-2 ${isSticky ? 'invisible pointer-events-none' : ''}`}>
+        {renderTabContent()}
       </div>
+
+      {/* Fixed Clone for Sticky Header */}
+      {isSticky && (
+        <div className="fixed top-16 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/[0.06] shadow-lg">
+          <div className="w-full max-w-5xl mx-auto px-6 md:px-12 py-3 flex flex-wrap items-center justify-between gap-2">
+            {renderTabContent()}
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <AnimatePresence mode="wait">
@@ -324,55 +350,41 @@ const FilmographySection: React.FC<{
           transition={{ duration: 0.2 }}
           className="flex flex-col"
         >
-          {tab === 'all' ? (
-            /* Flat merged list — all categories sorted together */
-            sortCredits([...dramas, ...movies, ...variety], sort).map((credit, i) => (
-              <FilmographyRow
-                key={`${credit.id}-${i}`}
-                credit={credit}
-                onNavigate={onNavigate}
-                showRoleBadge={true}
-              />
-            ))
-          ) : (
-            <>
-              {tab === 'drama' && (
-                dramas.length > 0
-                  ? <FilmographyListSection
-                      label="Drama / Series"
-                      credits={dramas}
-                      sort={sort}
-                      onNavigate={onNavigate}
-                      showHeader={false}
-                      showRoleBadge={true}
-                    />
-                  : <p className="text-white/30 text-sm text-center py-8">No credits in this category.</p>
-              )}
-              {tab === 'movies' && (
-                movies.length > 0
-                  ? <FilmographyListSection
-                      label="Movies"
-                      credits={movies}
-                      sort={sort}
-                      onNavigate={onNavigate}
-                      showHeader={false}
-                      showRoleBadge={true}
-                    />
-                  : <p className="text-white/30 text-sm text-center py-8">No credits in this category.</p>
-              )}
-              {tab === 'tv' && (
-                variety.length > 0
-                  ? <FilmographyListSection
-                      label="TV Shows / Variety"
-                      credits={variety}
-                      sort={sort}
-                      onNavigate={onNavigate}
-                      showHeader={false}
-                      showRoleBadge={false}
-                    />
-                  : <p className="text-white/30 text-sm text-center py-8">No credits in this category.</p>
-              )}
-            </>
+          {tab === 'drama' && (
+            dramas.length > 0
+              ? <FilmographyListSection
+                  label="Drama / Series"
+                  credits={dramas}
+                  sort={sort}
+                  onNavigate={onNavigate}
+                  showHeader={false}
+                  showRoleBadge={true}
+                />
+              : <p className="text-white/30 text-sm text-center py-8">No credits in this category.</p>
+          )}
+          {tab === 'movies' && (
+            movies.length > 0
+              ? <FilmographyListSection
+                  label="Movies"
+                  credits={movies}
+                  sort={sort}
+                  onNavigate={onNavigate}
+                  showHeader={false}
+                  showRoleBadge={true}
+                />
+              : <p className="text-white/30 text-sm text-center py-8">No credits in this category.</p>
+          )}
+          {tab === 'tv' && (
+            variety.length > 0
+              ? <FilmographyListSection
+                  label="TV Shows / Variety"
+                  credits={variety}
+                  sort={sort}
+                  onNavigate={onNavigate}
+                  showHeader={false}
+                  showRoleBadge={false}
+                />
+              : <p className="text-white/30 text-sm text-center py-8">No credits in this category.</p>
           )}
         </motion.div>
       </AnimatePresence>
@@ -418,7 +430,7 @@ const CreditRow = ({ title, credits }: { title: string, credits: PersonCredit[] 
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <h2 className="font-sans font-medium text-[11px] uppercase tracking-[0.14em] text-[#5a5a72] mb-3 sm:mb-4">
+      <h2 className="font-sans font-medium text-xs uppercase tracking-widest text-white/30 mb-4">
         {title}
       </h2>
 
@@ -456,17 +468,22 @@ const CreditRow = ({ title, credits }: { title: string, credits: PersonCredit[] 
         <div 
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex overflow-x-auto gap-2.5 sm:gap-3.5 no-scrollbar pb-3 snap-x snap-mandatory"
+          className="flex overflow-x-auto gap-4 sm:gap-6 no-scrollbar pb-3 snap-x snap-mandatory"
         >
           {credits.map((credit, i) => (
-            <PosterCard
-              key={`${credit.id}-${i}`}
-              id={credit.id}
-              title={credit.title || credit.name}
-              posterPath={credit.poster_path}
-              mediaType={credit.media_type}
-              voteAverage={credit.vote_average}
-            />
+            <div key={`${credit.id}-${i}`} className="flex flex-col gap-2 w-36 shrink-0 snap-start">
+              <PosterCard
+                id={credit.id}
+                title={credit.title || credit.name}
+                posterPath={credit.poster_path}
+                mediaType={credit.media_type}
+                voteAverage={credit.vote_average}
+                className="w-36 h-52 shrink-0 rounded-xl overflow-hidden"
+              />
+              <span className="text-sm font-medium text-white line-clamp-2 leading-snug px-0.5">
+                {credit.title || credit.name}
+              </span>
+            </div>
           ))}
         </div>
       </div>
@@ -524,7 +541,7 @@ export const PersonPage: React.FC = () => {
   const { data: fallbackCredits, isLoading: isLoadingFallbackCredits } = useQuery({
     queryKey: ['person-credits', personId],
     queryFn: ({ signal }) => tmdb!.getPersonCredits(personId, { signal }),
-    enabled: !!tmdb && !isNaN(personId) && !details?.combined_credits,
+    enabled: !!tmdb && !isNaN(personId) && !!details && !details.combined_credits,
     staleTime: 1000 * 60 * 10,
   });
 
@@ -635,7 +652,7 @@ export const PersonPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black pb-20 overflow-x-hidden">
+    <div className="min-h-screen bg-black pb-20">
       {/* Top Left Navigation Buttons */}
       <div className="fixed top-4 left-4 sm:top-6 sm:left-6 z-50 flex items-center gap-3">
         <button 
@@ -695,7 +712,7 @@ export const PersonPage: React.FC = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.45, ease: 'easeOut' as const }}
-            className="w-[100px] h-[100px] rounded-full overflow-hidden border-2 border-white/20 shadow-2xl bg-[#12121e] flex items-center justify-center shrink-0"
+            className="w-32 h-44 rounded-2xl overflow-hidden border border-white/10 shadow-[0_0_40px_rgba(255,255,255,0.08)] bg-[#12121e] flex items-center justify-center shrink-0"
           >
             {avatarUrl ? (
               <img
@@ -704,7 +721,7 @@ export const PersonPage: React.FC = () => {
                 className="w-full h-full object-cover block"
               />
             ) : (
-              <User size={40} className="text-[#5a5a72]/60" />
+              <User size={48} className="text-[#5a5a72]/60" />
             )}
           </motion.div>
         </div>
@@ -719,7 +736,7 @@ export const PersonPage: React.FC = () => {
           {/* Name */}
           <motion.h1
             variants={itemVariants}
-            className="font-[Georgia,'Times_New_Roman',serif] font-bold text-white text-xl leading-tight text-center break-words"
+            className="font-[Georgia,'Times_New_Roman',serif] font-bold text-white text-2xl tracking-tight leading-tight text-center break-words"
           >
             {details.name}
           </motion.h1>
@@ -727,35 +744,35 @@ export const PersonPage: React.FC = () => {
           {/* Department badge */}
           {details.known_for_department && (
             <motion.div variants={itemVariants}>
-              <span className="inline-block px-3 py-1 bg-[var(--color-accent-dim)] text-[var(--color-accent)] border border-[var(--color-accent)] rounded-full font-sans text-[10px] tracking-wider uppercase leading-none font-semibold">
+              <span className="inline-block px-4 py-1.5 bg-[var(--color-accent-dim)] text-[var(--color-accent)] border border-[var(--color-accent)] rounded-full font-sans text-sm tracking-wider uppercase leading-none font-semibold">
                 {details.known_for_department}
               </span>
             </motion.div>
           )}
 
           {/* Metadata — 2×2 grid */}
-          <motion.div variants={itemVariants} className="grid grid-cols-2 gap-x-6 gap-y-3 text-center mt-1 w-full max-w-xs">
+          <motion.div variants={itemVariants} className="grid grid-cols-2 gap-8 text-center mt-1 w-full max-w-xs">
             {details.birthday && (
               <div className="flex flex-col">
-                <span className="text-white/40 text-[10px] uppercase tracking-widest font-semibold mb-0.5">Born</span>
-                <span className="text-[#eeeef5] text-xs font-medium leading-snug">{formatDate(details.birthday)}</span>
+                <span className="text-white/35 text-xs uppercase tracking-widest font-semibold mb-0.5">Born</span>
+                <span className="text-white text-base font-medium leading-snug">{formatDate(details.birthday)}</span>
               </div>
             )}
             {details.birthday && age !== null && (
               <div className="flex flex-col">
-                <span className="text-white/40 text-[10px] uppercase tracking-widest font-semibold mb-0.5">Age</span>
-                <span className="text-[#eeeef5] text-xs font-medium">{details.deathday ? `† Age ${age}` : age}</span>
+                <span className="text-white/35 text-xs uppercase tracking-widest font-semibold mb-0.5">Age</span>
+                <span className="text-white text-base font-medium">{details.deathday ? `† Age ${age}` : age}</span>
               </div>
             )}
             {details.place_of_birth && (
               <div className="flex flex-col">
-                <span className="text-white/40 text-[10px] uppercase tracking-widest font-semibold mb-0.5">From</span>
-                <span className="text-[#eeeef5] text-xs font-medium leading-snug">{details.place_of_birth}</span>
+                <span className="text-white/35 text-xs uppercase tracking-widest font-semibold mb-0.5">From</span>
+                <span className="text-white text-base font-medium leading-snug">{details.place_of_birth}</span>
               </div>
             )}
             <div className="flex flex-col">
-              <span className="text-white/40 text-[10px] uppercase tracking-widest font-semibold mb-0.5">Gender</span>
-              <span className="text-[#eeeef5] text-xs font-medium">
+              <span className="text-white/35 text-xs uppercase tracking-widest font-semibold mb-0.5">Gender</span>
+              <span className="text-white text-base font-medium">
                 {details.gender === 1 ? 'Female' : details.gender === 2 ? 'Male' : '—'}
               </span>
             </div>
@@ -765,7 +782,7 @@ export const PersonPage: React.FC = () => {
           {details.also_known_as && details.also_known_as.length > 0 && (
             <motion.div variants={itemVariants} className="flex flex-wrap justify-center gap-1.5 mt-1">
               {details.also_known_as.slice(0, 3).map(alias => (
-                <span key={alias} className="px-2 py-0.5 bg-white/10 text-[#9898b0] text-[10px] rounded font-medium border border-white/5">
+                <span key={alias} className="px-2.5 py-1 bg-white/10 text-[#9898b0] text-xs rounded font-medium border border-white/5">
                   {alias}
                 </span>
               ))}
@@ -808,14 +825,14 @@ export const PersonPage: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.45, ease: 'easeOut' as const }}
-              className="relative w-56 shrink-0 aspect-[2/3] rounded-xl shadow-2xl overflow-hidden bg-[#12121e] border border-white/10 flex items-center justify-center"
+              className="relative w-48 h-64 shrink-0 rounded-2xl shadow-[0_0_40px_rgba(255,255,255,0.08)] overflow-hidden bg-[#12121e] border border-white/10 flex items-center justify-center"
             >
               {avatarUrl ? (
                 <>
                   <img
                     src={avatarUrl}
                     alt={details.name}
-                    className="w-full h-full object-cover rounded-xl block"
+                    className="w-full h-full object-cover rounded-2xl block"
                   />
                   <div
                     className="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none"
@@ -841,43 +858,42 @@ export const PersonPage: React.FC = () => {
             >
               <motion.h1
                 variants={itemVariants}
-                className="font-[Georgia,'Times_New_Roman',serif] font-bold text-white leading-tight break-words whitespace-normal max-w-full"
-                style={{ fontSize: 'clamp(1.8rem, 4vw, 3.2rem)' }}
+                className="font-[Georgia,'Times_New_Roman',serif] font-bold text-white text-4xl tracking-tight leading-tight break-words whitespace-normal max-w-full"
               >
                 {details.name}
               </motion.h1>
 
               {details.known_for_department && (
                 <motion.div variants={itemVariants}>
-                  <span className="inline-block px-3 py-1 bg-[var(--color-accent-dim)] text-[var(--color-accent)] border border-[var(--color-accent)] rounded-full font-sans text-[10px] sm:text-[11px] tracking-wider uppercase leading-none font-semibold">
+                  <span className="inline-block px-4 py-1.5 bg-[var(--color-accent-dim)] text-[var(--color-accent)] border border-[var(--color-accent)] rounded-full font-sans text-sm tracking-wider uppercase leading-none font-semibold">
                     {details.known_for_department}
                   </span>
                 </motion.div>
               )}
 
               {/* Stats Row */}
-              <motion.div variants={itemVariants} className="flex flex-wrap justify-start items-center gap-6 mt-1 text-left">
+              <motion.div variants={itemVariants} className="flex flex-wrap justify-start items-center gap-8 mt-1 text-left">
                 {details.birthday && (
                   <div className="flex flex-col">
-                    <span className="text-[#5a5a72] text-[10px] uppercase tracking-widest font-semibold mb-0.5">Born</span>
-                    <span className="text-[#eeeef5] text-sm font-medium">{formatDate(details.birthday)}</span>
+                    <span className="text-white/35 text-xs uppercase tracking-widest font-semibold mb-0.5">Born</span>
+                    <span className="text-white text-base font-medium">{formatDate(details.birthday)}</span>
                   </div>
                 )}
                 {details.birthday && age !== null && (
                   <div className="flex flex-col">
-                    <span className="text-[#5a5a72] text-[10px] uppercase tracking-widest font-semibold mb-0.5">Age</span>
-                    <span className="text-[#eeeef5] text-sm font-medium">{details.deathday ? `† Age ${age}` : age}</span>
+                    <span className="text-white/35 text-xs uppercase tracking-widest font-semibold mb-0.5">Age</span>
+                    <span className="text-white text-base font-medium">{details.deathday ? `† Age ${age}` : age}</span>
                   </div>
                 )}
                 {details.place_of_birth && (
                   <div className="flex flex-col">
-                    <span className="text-[#5a5a72] text-[10px] uppercase tracking-widest font-semibold mb-0.5">From</span>
-                    <span className="text-[#eeeef5] text-sm font-medium">{details.place_of_birth}</span>
+                    <span className="text-white/35 text-xs uppercase tracking-widest font-semibold mb-0.5">From</span>
+                    <span className="text-white text-base font-medium">{details.place_of_birth}</span>
                   </div>
                 )}
                 <div className="flex flex-col">
-                  <span className="text-[#5a5a72] text-[10px] uppercase tracking-widest font-semibold mb-0.5">Gender</span>
-                  <span className="text-[#eeeef5] text-sm font-medium">
+                  <span className="text-white/35 text-xs uppercase tracking-widest font-semibold mb-0.5">Gender</span>
+                  <span className="text-white text-base font-medium">
                     {details.gender === 1 ? 'Female' : details.gender === 2 ? 'Male' : '—'}
                   </span>
                 </div>
@@ -887,7 +903,7 @@ export const PersonPage: React.FC = () => {
               {details.also_known_as && details.also_known_as.length > 0 && (
                 <motion.div variants={itemVariants} className="flex flex-wrap justify-start gap-2 mt-1">
                   {details.also_known_as.slice(0, 3).map(alias => (
-                    <span key={alias} className="px-2 py-0.5 bg-white/10 text-[#9898b0] text-[11px] rounded font-medium border border-white/5">
+                    <span key={alias} className="px-2.5 py-1 bg-white/10 text-[#9898b0] text-xs rounded font-medium border border-white/5">
                       {alias}
                     </span>
                   ))}
@@ -899,26 +915,26 @@ export const PersonPage: React.FC = () => {
       </div>
 
         {/* Stats Bar */}
-        <div className="flex items-center justify-center gap-4 sm:gap-8 md:gap-16 py-4 sm:py-5 bg-[#0a0a10] border-y border-[rgba(255,255,255,0.04)] shadow-inner w-full px-4">
+        <div className="flex items-center justify-center gap-4 sm:gap-8 md:gap-16 py-8 bg-[#0a0a10] border-y border-[rgba(255,255,255,0.04)] shadow-inner w-full px-4">
           <div className="flex flex-col items-center gap-0.5">
-            <span className="text-white text-xl sm:text-2xl font-bold font-sans">
+            <span className="text-white text-4xl font-bold font-sans">
               {isCreditsLoading ? '—' : movieCount}
             </span>
-            <span className="text-[#5a5a72] text-[9px] sm:text-[10px] uppercase tracking-[0.14em] font-semibold">Movies</span>
+            <span className="text-white/40 text-xs uppercase tracking-widest font-semibold">Movies</span>
           </div>
-          <div className="w-px h-8 sm:h-10 bg-[rgba(255,255,255,0.08)]" />
+          <div className="w-px h-10 bg-[rgba(255,255,255,0.08)]" />
           <div className="flex flex-col items-center gap-0.5">
-            <span className="text-white text-xl sm:text-2xl font-bold font-sans">
+            <span className="text-white text-4xl font-bold font-sans">
               {isCreditsLoading ? '—' : tvCount}
             </span>
-            <span className="text-[#5a5a72] text-[9px] sm:text-[10px] uppercase tracking-[0.14em] font-semibold">TV Shows</span>
+            <span className="text-white/40 text-xs uppercase tracking-widest font-semibold">TV Shows</span>
           </div>
-          <div className="w-px h-8 sm:h-10 bg-[rgba(255,255,255,0.08)]" />
+          <div className="w-px h-10 bg-[rgba(255,255,255,0.08)]" />
           <div className="flex flex-col items-center gap-0.5">
-            <span className="text-white text-xl sm:text-2xl font-bold font-sans">
+            <span className="text-white text-4xl font-bold font-sans">
               {isCreditsLoading ? '—' : totalCount}
             </span>
-            <span className="text-[#5a5a72] text-[9px] sm:text-[10px] uppercase tracking-[0.14em] font-semibold">Total Credits</span>
+            <span className="text-white/40 text-xs uppercase tracking-widest font-semibold">Total Credits</span>
           </div>
         </div>
 
@@ -926,7 +942,7 @@ export const PersonPage: React.FC = () => {
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          className="w-full max-w-[1000px] mx-auto px-4 sm:px-6 md:px-8 pt-8 sm:pt-10 pb-12 flex flex-col gap-8 sm:gap-12"
+          className="w-full max-w-5xl mx-auto px-6 md:px-12 pt-8 sm:pt-10 pb-12 flex flex-col gap-8 sm:gap-12"
         >
           {/* Biography Section */}
           <motion.section variants={itemVariants} className="bg-black max-w-3xl">
@@ -947,7 +963,7 @@ export const PersonPage: React.FC = () => {
             </div>
             
             {details.biography ? (
-              <div className="text-[#e2e2e2] font-sans text-sm sm:text-base leading-[1.6]">
+              <div className="text-white/75 font-sans text-base leading-relaxed">
                 <p className={!showFullBio ? "line-clamp-4" : ""}>
                   {details.biography}
                 </p>
