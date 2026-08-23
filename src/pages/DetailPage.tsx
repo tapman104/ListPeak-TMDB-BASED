@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useSearch, useNavigate } from '@tanstack/react-router';
+import { useParams, useSearch, useNavigate, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import { 
@@ -1059,12 +1059,15 @@ export const DetailPage: React.FC = () => {
             </h2>
             <div className="flex flex-wrap gap-2">
               {keywords.slice(0, 16).map((kw) => (
-                <span
+                <Link
                   key={kw.id}
-                  className="font-sans text-[11px] text-[#a0a0b8] px-2.5 py-1 rounded-full bg-[#0e0e1a] border border-[rgba(255,255,255,0.07)] hover:border-[var(--color-accent)] hover:text-white transition-colors cursor-default"
+                  to="/tag/$id"
+                  params={{ id: String(kw.id) }}
+                  search={{ name: kw.name, type: 'all' }}
+                  className="font-sans text-[11px] text-[#a0a0b8] px-2.5 py-1 rounded-full bg-[#0e0e1a] border border-[rgba(255,255,255,0.07)] hover:bg-white/10 hover:border-[var(--color-accent)] hover:text-white transition-colors cursor-pointer"
                 >
                   {kw.name}
-                </span>
+                </Link>
               ))}
             </div>
             </motion.section>

@@ -306,5 +306,40 @@ export const createTMDBClient = (apiKey: string) => {
     },
     searchPeople: (query: string, page = 1, init?: RequestInit) => 
       fetchTMDB<TMDBResponse<TMDBPerson>>(`/search/person?query=${encodeURIComponent(query)}&page=${page}`, init),
+    getKeywordDetails: (keywordId: number, init?: RequestInit) =>
+      fetchTMDB<{ id: number; name: string }>(`/keyword/${keywordId}`, init),
+    getDiscoverByKeyword: async (options: {
+      keywordId: number;
+      keywordName?: string;
+      mediaType: 'tv' | 'movie' | 'all';
+      page?: number;
+      signal?: AbortSignal;
+    }) => {
+      const page = options.page || 1;
+      const init = { signal: options.signal };
+      if (options.mediaType === 'all') {
+        const [tv, movies] = await Promise.all([
+          fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/tv?with_keywords=${options.keywordId}&sort_by=popularity.desc&page=${page}`, init),
+          fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/movie?with_keywords=${options.keywordId}&sort_by=popularity.desc&page=${page}`, init)
+        ]);
+        const tvWithMediaType = tv.results.map(item => ({ ...item, media_type: 'tv' as const }));
+        const moviesWithMediaType = movies.results.map(item => ({ ...item, media_type: 'movie' as const }));
+        
+        const results = [...tvWithMediaType, ...moviesWithMediaType]
+          .sort((a, b) => b.popularity - a.popularity);
+          
+        return {
+          page,
+          results,
+          total_pages: Math.max(tv.total_pages, movies.total_pages),
+          total_results: tv.total_results + movies.total_results,
+        };
+      }
+      
+      const type = options.mediaType;
+      const res = await fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/${type}?with_keywords=${options.keywordId}&sort_by=popularity.desc&page=${page}`, init);
+      res.results = res.results.map(item => ({ ...item, media_type: type }));
+      return res;
+    },
   };
 };

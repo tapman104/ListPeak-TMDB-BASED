@@ -16,6 +16,7 @@ import { Route as SetupRouteImport } from './routes/setup'
 import { Route as TrendingRouteImport } from './routes/trending'
 import { Route as DetailIdRouteImport } from './routes/detail.$id'
 import { Route as PersonIdRouteImport } from './routes/person.$id'
+import { Route as TagIdRouteImport } from './routes/tag.$id'
 import { Route as DetailIdCastRouteImport } from './routes/detail.$id.cast'
 
 const IndexRoute = IndexRouteImport.update({
@@ -53,6 +54,11 @@ const PersonIdRoute = PersonIdRouteImport.update({
   path: '/person/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TagIdRoute = TagIdRouteImport.update({
+  id: '/tag/$id',
+  path: '/tag/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DetailIdCastRoute = DetailIdCastRouteImport.update({
   id: '/cast',
   path: '/cast',
@@ -67,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/trending': typeof TrendingRoute
   '/detail/$id': typeof DetailIdRouteWithChildren
   '/person/$id': typeof PersonIdRoute
+  '/tag/$id': typeof TagIdRoute
   '/detail/$id/cast': typeof DetailIdCastRoute
 }
 export interface FileRoutesByTo {
@@ -77,6 +84,7 @@ export interface FileRoutesByTo {
   '/trending': typeof TrendingRoute
   '/detail/$id': typeof DetailIdRouteWithChildren
   '/person/$id': typeof PersonIdRoute
+  '/tag/$id': typeof TagIdRoute
   '/detail/$id/cast': typeof DetailIdCastRoute
 }
 export interface FileRoutesById {
@@ -88,6 +96,7 @@ export interface FileRoutesById {
   '/trending': typeof TrendingRoute
   '/detail/$id': typeof DetailIdRouteWithChildren
   '/person/$id': typeof PersonIdRoute
+  '/tag/$id': typeof TagIdRoute
   '/detail/$id/cast': typeof DetailIdCastRoute
 }
 export interface FileRouteTypes {
@@ -100,6 +109,7 @@ export interface FileRouteTypes {
     | '/trending'
     | '/detail/$id'
     | '/person/$id'
+    | '/tag/$id'
     | '/detail/$id/cast'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -110,6 +120,7 @@ export interface FileRouteTypes {
     | '/trending'
     | '/detail/$id'
     | '/person/$id'
+    | '/tag/$id'
     | '/detail/$id/cast'
   id:
     | '__root__'
@@ -120,6 +131,7 @@ export interface FileRouteTypes {
     | '/trending'
     | '/detail/$id'
     | '/person/$id'
+    | '/tag/$id'
     | '/detail/$id/cast'
   fileRoutesById: FileRoutesById
 }
@@ -131,6 +143,7 @@ export interface RootRouteChildren {
   TrendingRoute: typeof TrendingRoute
   DetailIdRoute: typeof DetailIdRouteWithChildren
   PersonIdRoute: typeof PersonIdRoute
+  TagIdRoute: typeof TagIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -184,6 +197,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PersonIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tag/$id': {
+      id: '/tag/$id'
+      path: '/tag/$id'
+      fullPath: '/tag/$id'
+      preLoaderRoute: typeof TagIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/detail/$id/cast': {
       id: '/detail/$id/cast'
       path: '/cast'
@@ -214,6 +234,7 @@ const rootRouteChildren: RootRouteChildren = {
   TrendingRoute: TrendingRoute,
   DetailIdRoute: DetailIdRouteWithChildren,
   PersonIdRoute: PersonIdRoute,
+  TagIdRoute: TagIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
