@@ -51,8 +51,7 @@ export const localAdapter: StorageAdapter = {
         search: filterState.search,
         hideAdult: filterState.hideAdult,
         hideVarietyShows: filterState.hideVarietyShows,
-        hideBL: filterState.hideBL,
-        hideLesbian: filterState.hideLesbian,
+        hideNSFW: filterState.hideNSFW,
       }
     };
   },

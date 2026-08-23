@@ -160,14 +160,6 @@ export const Navbar: React.FC = () => {
                     
                     <DropdownMenu.Item
                       onClick={handleClearKey}
-                      className="flex items-center gap-3 px-3 h-[38px] text-sm text-[var(--color-text-primary)] outline-none cursor-pointer hover:bg-[var(--color-accent-dim)] rounded-md font-sans transition-colors"
-                    >
-                      <KeyRound size={16} />
-                      Change API Key
-                    </DropdownMenu.Item>
-
-                    <DropdownMenu.Item
-                      onClick={handleClearKey}
                       className="flex items-center gap-3 px-3 h-[38px] text-sm text-red-400 outline-none cursor-pointer hover:bg-red-400/10 rounded-md font-sans transition-colors"
                     >
                       <LogOut size={16} />
@@ -299,14 +291,6 @@ export const Navbar: React.FC = () => {
               </div>
 
               <div className="border-t border-[var(--color-border-subtle)] pt-4 flex flex-col gap-2">
-                <button
-                  onClick={handleClearKey}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--color-text-muted)] hover:text-white hover:bg-[var(--color-card)] transition-colors text-sm font-sans min-h-[44px]"
-                >
-                  <KeyRound size={16} />
-                  Change TMDb API Key
-                </button>
-
                 <button
                   onClick={handleClearKey}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-400/10 transition-colors text-sm font-sans min-h-[44px]"

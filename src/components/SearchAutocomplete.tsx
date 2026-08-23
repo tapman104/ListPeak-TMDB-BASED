@@ -5,6 +5,8 @@ import { useKeyStore } from '../store/keyStore';
 import { createTMDBClient, type SearchResultItem } from '../api/tmdb';
 import { useSearchHistory } from '../hooks/useSearchHistory';
 import { TMDB_IMAGE_BASE } from '../lib/constants';
+import { useHiddenStore } from '../store/hiddenStore';
+import { useDismissedStore } from '../store/dismissedStore';
 
 interface SearchAutocompleteProps {
   initialValue?: string;
@@ -31,6 +33,8 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
 }) => {
   const navigate = useNavigate();
   const apiKey = useKeyStore((state) => state.apiKey);
+  const hiddenItems = useHiddenStore((state) => state.hiddenItems);
+  const dismissed = useDismissedStore((state) => state.dismissed);
   const { history, addToHistory, removeFromHistory, clearHistory } = useSearchHistory();
 
   const [query, setQuery] = useState(initialValue);
@@ -76,7 +80,14 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
       try {
         const tmdb = createTMDBClient(apiKey);
         const resp = await tmdb.searchMulti(trimmed, 1);
-        const items = (resp.results || []).slice(0, 6);
+        const items = (resp.results || [])
+          .filter(item => {
+            if (item.media_type === 'person') return true;
+            const type = (item.media_type as 'movie' | 'tv') ?? 'movie';
+            return !useHiddenStore.getState().isHidden(item.id, type) && 
+                   !useDismissedStore.getState().isDismissed(item.id, type);
+          })
+          .slice(0, 6);
         setSuggestions(items);
       } catch {
         setSuggestions([]);
@@ -320,7 +331,12 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
             <div className="py-2">
               {suggestions.length > 0 ? (
                 <div className="flex flex-col">
-                  {suggestions.map((item, index) => {
+                  {suggestions.filter(item => {
+                    if (item.media_type === 'person') return true;
+                    const hType = (item.media_type as 'movie' | 'tv') ?? 'movie';
+                    return !hiddenItems.some(h => h.id === item.id && h.type === hType) &&
+                           !dismissed.some(d => d.id === item.id && d.type === hType);
+                  }).map((item, index) => {
                     const isSelected = selectedIndex === index;
                     const isPerson = item.media_type === 'person';
                     const title = isPerson ? item.name : item.title || item.name || 'Untitled';

@@ -6,8 +6,7 @@ export interface FilterState {
   search: string;
   hideAdult: boolean;
   hideVarietyShows: boolean;
-  hideBL: boolean;
-  hideLesbian: boolean;
+  hideNSFW: boolean;
 }
 
 export interface ExportPayload {

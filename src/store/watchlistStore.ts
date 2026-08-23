@@ -12,6 +12,11 @@ export interface WatchlistEntry {
   title: string;
   posterPath: string | null;
   year: string;
+  // New optional tracking fields
+  rewatches?: number;
+  startDate?: string;
+  endDate?: string;
+  notes?: string;
 }
 
 interface WatchlistState {

@@ -213,11 +213,11 @@ export const createTMDBClient = (apiKey: string) => {
       }
       return response.json();
     },
-    getTrendingWeek: async (init?: RequestInit, originLanguage?: string) => {
+    getTrendingWeek: async (init?: RequestInit, originLanguage?: string, page: number = 1) => {
       if (originLanguage) {
         const [tv, movies] = await Promise.all([
-          fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/tv?sort_by=popularity.desc&with_original_language=${originLanguage}&page=1`, init),
-          fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/movie?sort_by=popularity.desc&with_original_language=${originLanguage}&page=1`, init)
+          fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/tv?sort_by=popularity.desc&with_original_language=${originLanguage}&page=${page}`, init),
+          fetchTMDB<TMDBResponse<TMDBMedia>>(`/discover/movie?sort_by=popularity.desc&with_original_language=${originLanguage}&page=${page}`, init)
         ]);
         // TMDB discover doesn't consistently return media_type, so we add it manually
         const tvWithMediaType = tv.results.map(item => ({ ...item, media_type: 'tv' as const }));
@@ -229,15 +229,14 @@ export const createTMDBClient = (apiKey: string) => {
           
         return { page: 1, results, total_pages: 1, total_results: results.length };
       }
-      return fetchTMDB<TMDBResponse<TMDBMedia>>(`/trending/all/week?page=1`, init);
+      return fetchTMDB<TMDBResponse<TMDBMedia>>(`/trending/all/week?page=${page}`, init);
     },
-    getBLIds: async (init?: RequestInit) => {
-      const response = await fetchTMDB<TMDBResponse<{ id: number }>>('/discover/tv?with_keywords=158718&page=1', init);
-      return response.results.map(r => r.id);
-    },
-    getGLIds: async (init?: RequestInit) => {
-      const response = await fetchTMDB<TMDBResponse<{ id: number }>>('/discover/tv?with_keywords=155201&page=1', init);
-      return response.results.map(r => r.id);
+    getNSFWIds: async (init?: RequestInit) => {
+      const [r1, r2] = await Promise.all([
+        fetchTMDB<TMDBResponse<{ id: number }>>('/discover/tv?with_keywords=158718&page=1', init),
+        fetchTMDB<TMDBResponse<{ id: number }>>('/discover/tv?with_keywords=155201&page=1', init)
+      ]);
+      return Array.from(new Set([...r1.results.map(r => r.id), ...r2.results.map(r => r.id)]));
     },
     getPopularMovies: (init?: RequestInit, originLanguage?: string) => {
       const params = originLanguage ? `?sort_by=popularity.desc&with_original_language=${originLanguage}&page=1` : `?sort_by=popularity.desc&page=1`;

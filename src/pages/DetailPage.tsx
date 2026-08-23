@@ -12,6 +12,8 @@ import { TMDB_IMAGE_BASE, TMDB_BACKDROP_SIZE, TMDB_POSTER_SIZE } from '../lib/co
 import { PosterCard } from '../components/PosterCard';
 import { WatchlistButton } from '../components/WatchlistButton';
 import { useFilterStore } from '../store/filterStore';
+import { useHiddenStore } from '../store/hiddenStore';
+import { useDismissedStore } from '../store/dismissedStore';
 
 // Define container and item variants for staggering motion
 const containerVariants = {
@@ -37,6 +39,8 @@ export const DetailPage: React.FC = () => {
   const navigate = useNavigate();
   const apiKey = useKeyStore((state) => state.apiKey);
   const recommendationFilter = useFilterStore((state) => state.recommendations);
+  const hiddenItems = useHiddenStore((state) => state.hiddenItems);
+  const dismissed = useDismissedStore((state) => state.dismissed);
   
   const [showCopied, setShowCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'seasons' | 'cast'>('overview');
@@ -65,15 +69,8 @@ export const DetailPage: React.FC = () => {
   }, [isSearchOpen]);
 
   const castScrollRef = useRef<HTMLDivElement>(null);
-  const [castScrollIndex, setCastScrollIndex] = useState(0);
 
   const CAST_CARD_WIDTH = 88; // px — approx card + gap width
-
-  const handleCastScroll = () => {
-    if (!castScrollRef.current) return;
-    const index = Math.round(castScrollRef.current.scrollLeft / CAST_CARD_WIDTH);
-    setCastScrollIndex(index);
-  };
 
   const scrollCastTo = (direction: 'left' | 'right') => {
     if (!castScrollRef.current) return;
@@ -596,10 +593,21 @@ export const DetailPage: React.FC = () => {
           const displayedCast = data.credits.cast.slice(0, 12);
           return (
           <motion.section variants={itemVariants}>
-            <h2 className="font-sans font-semibold text-xs uppercase tracking-[0.15em] text-white/60 mb-4">
-              TOP CAST
-            </h2>
-            <div ref={castScrollRef} onScroll={handleCastScroll} className="flex overflow-x-auto gap-4 sm:gap-6 pb-3 no-scrollbar snap-x snap-mandatory">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-sans font-semibold text-xs uppercase tracking-[0.15em] text-white/60">
+                TOP CAST
+              </h2>
+              <button
+                onClick={() => {
+                  setActiveTab('cast');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="font-sans text-[11px] text-white/60 hover:text-[var(--color-accent)] transition-colors uppercase tracking-wider cursor-pointer"
+              >
+                View more &rarr;
+              </button>
+            </div>
+            <div ref={castScrollRef} className="flex overflow-x-auto gap-4 sm:gap-6 pb-3 no-scrollbar snap-x snap-mandatory">
               {displayedCast.map(actor => (
                 <div 
                   key={actor.id} 
@@ -630,59 +638,28 @@ export const DetailPage: React.FC = () => {
             </div>
 
             {/* Scroll controls row */}
-            <div className="flex items-center justify-between mt-3">
-
-              {/* Dot indicators */}
-              <div className="flex gap-1.5">
-                {displayedCast.map((_: any, i: number) => {
-                  const dotsVisible = Math.min(displayedCast.length, 8);
-                  const dotIndex = Math.round(castScrollIndex / 1); // 1:1 mapping
-                  if (i >= dotsVisible) return null;
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => {
-                        if (!castScrollRef.current) return;
-                        castScrollRef.current.scrollTo({ left: i * CAST_CARD_WIDTH, behavior: 'smooth' });
-                      }}
-                      className={`rounded-full transition-all duration-200 ${
-                        i === Math.min(dotIndex, dotsVisible - 1)
-                          ? 'w-4 h-1.5 bg-[var(--color-accent)]'
-                          : 'w-1.5 h-1.5 bg-[#3a3a52]'
-                      }`}
-                      aria-label={`Go to cast member ${i + 1}`}
-                    />
-                  );
-                })}
+            <div className="flex items-center justify-end mt-3">
+              {/* Prev/Next arrow buttons */}
+              <div className="flex gap-1">
+                <button
+                  onClick={() => scrollCastTo('left')}
+                  className="w-6 h-6 rounded-full bg-[#1a1a2e] flex items-center justify-center text-[#5a5a72] hover:text-white/90 hover:bg-[#252540] transition-all"
+                  aria-label="Scroll cast left"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => scrollCastTo('right')}
+                  className="w-6 h-6 rounded-full bg-[#1a1a2e] flex items-center justify-center text-[#5a5a72] hover:text-white/90 hover:bg-[#252540] transition-all"
+                  aria-label="Scroll cast right"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
               </div>
-
-              {/* Right side: arrows + View All */}
-              <div className="flex items-center gap-3">
-                {/* Prev/Next arrow buttons */}
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => scrollCastTo('left')}
-                    className="w-6 h-6 rounded-full bg-[#1a1a2e] flex items-center justify-center text-[#5a5a72] hover:text-white/90 hover:bg-[#252540] transition-all"
-                    aria-label="Scroll cast left"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="15 18 9 12 15 6" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => scrollCastTo('right')}
-                    className="w-6 h-6 rounded-full bg-[#1a1a2e] flex items-center justify-center text-[#5a5a72] hover:text-white/90 hover:bg-[#252540] transition-all"
-                    aria-label="Scroll cast right"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </button>
-                </div>
-
-                {/* View All link removed as tab replaces it */}
-              </div>
-
             </div>
 
             </motion.section>
@@ -1158,7 +1135,12 @@ export const DetailPage: React.FC = () => {
         {(() => {
           const lang = recommendationFilter === 'all' ? undefined : recommendationFilter;
           const filteredSimilar = data.similar?.results
-            ? data.similar.results.filter(item => lang ? (item as any).original_language === lang : true)
+            ? data.similar.results.filter((item: any) => {
+                const type = item.media_type ?? (item.title ? 'movie' : 'tv');
+                return (lang ? item.original_language === lang : true) && 
+                       !hiddenItems.some(h => h.id === item.id && h.type === type) &&
+                       !dismissed.some(d => d.id === item.id && d.type === type);
+              })
             : [];
           
           if (filteredSimilar.length === 0) return null;
@@ -1231,8 +1213,8 @@ export const DetailPage: React.FC = () => {
 
       {/* Search Overlay */}
       {isSearchOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col md:items-center md:justify-center p-0 md:p-8 animate-in fade-in duration-200">
-          <div className="w-full h-full md:h-[85vh] max-w-4xl bg-transparent md:bg-[#07070d] md:border md:border-white/10 md:rounded-2xl flex flex-col p-4 sm:p-6 md:p-8 md:shadow-2xl relative overflow-hidden">
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex flex-col md:items-center md:justify-center p-0 md:p-8 animate-in fade-in duration-200">
+          <div className="w-full h-full md:h-[85vh] max-w-4xl bg-black/30 backdrop-blur-xl md:border md:border-white/10 md:rounded-2xl flex flex-col p-4 sm:p-6 md:p-8 md:shadow-2xl relative overflow-hidden">
             <div className="w-full mx-auto flex items-center gap-4 mb-8 shrink-0 mt-4 md:mt-0">
               <SearchIcon size={28} className="text-white/60 shrink-0" />
               <input 
@@ -1241,7 +1223,7 @@ export const DetailPage: React.FC = () => {
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent border-none outline-none text-2xl sm:text-3xl text-white font-sans font-medium placeholder-white/40"
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none text-2xl sm:text-3xl text-white font-sans font-medium placeholder-white/40"
               />
               <button 
                 onClick={() => setIsSearchOpen(false)}
@@ -1258,7 +1240,11 @@ export const DetailPage: React.FC = () => {
             
             {!searchLoading && searchResults?.results && searchResults.results.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {searchResults.results.map((item) => (
+                {searchResults.results.filter((item: any) => {
+                  const type = item.media_type ?? 'movie';
+                  return !hiddenItems.some(h => h.id === item.id && h.type === type) &&
+                         !dismissed.some(d => d.id === item.id && d.type === type);
+                }).map((item) => (
                   <div key={item.id} onClick={() => {
                     setIsSearchOpen(false);
                     setSearchQuery('');

@@ -2,8 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
-import { ArrowLeft, AlertCircle, ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { ArrowLeft, AlertCircle, ChevronLeft, ChevronRight, User, Home, Search as SearchIcon, X } from 'lucide-react';
 import { useKeyStore } from '../store/keyStore';
+import { useHiddenStore } from '../store/hiddenStore';
+import { useDismissedStore } from '../store/dismissedStore';
 import { createTMDBClient, type PersonCredit } from '../api/tmdb';
 import { TMDB_IMAGE_BASE } from '../lib/constants';
 import { PosterCard } from '../components/PosterCard';
@@ -176,8 +178,32 @@ export const PersonPage: React.FC = () => {
   const { id } = useParams({ from: '/person/$id' });
   const navigate = useNavigate();
   const apiKey = useKeyStore((state) => state.apiKey);
+  const hiddenItems = useHiddenStore((state) => state.hiddenItems);
+  const dismissed = useDismissedStore((state) => state.dismissed);
   
   const [showFullBio, setShowFullBio] = useState(false);
+
+  // Search overlay state
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isSearchOpen) {
+        setIsSearchOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSearchOpen]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -199,6 +225,13 @@ export const PersonPage: React.FC = () => {
     queryFn: ({ signal }) => tmdb!.getPersonCredits(personId, { signal }),
     enabled: !!tmdb && !isNaN(personId) && !details?.combined_credits,
     staleTime: 1000 * 60 * 10,
+  });
+
+  const { data: searchResults, isLoading: searchLoading } = useQuery({
+    queryKey: ['search', debouncedSearchQuery],
+    queryFn: ({ signal }) => tmdb!.searchMulti(debouncedSearchQuery, 1, { signal }),
+    enabled: !!apiKey && !!tmdb && isSearchOpen && debouncedSearchQuery.length > 1,
+    staleTime: 1000 * 60 * 2,
   });
 
   if (!apiKey) {
@@ -297,15 +330,33 @@ export const PersonPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-black pb-20 overflow-x-hidden">
-      {/* Back Button */}
-      <button 
-        onClick={() => window.history.length > 1 ? window.history.back() : navigate({ to: '/' })}
-        className="fixed top-4 left-4 sm:top-6 sm:left-6 z-50 flex items-center justify-center w-11 h-11 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 hover:border-white/40 transition-all duration-200 cursor-pointer shadow-lg"
-        title="Back"
-        aria-label="Go Back"
-      >
-        <ArrowLeft size={18} />
-      </button>
+      {/* Top Left Navigation Buttons */}
+      <div className="fixed top-4 left-4 sm:top-6 sm:left-6 z-50 flex items-center gap-3">
+        <button 
+          onClick={() => window.history.length > 1 ? window.history.back() : navigate({ to: '/' })}
+          className="flex items-center justify-center w-11 h-11 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 hover:border-white/40 transition-all duration-200 cursor-pointer shadow-lg"
+          title="Back"
+          aria-label="Go Back"
+        >
+          <ArrowLeft size={18} />
+        </button>
+        <button 
+          onClick={() => navigate({ to: '/' })}
+          className="flex items-center justify-center w-11 h-11 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 hover:border-white/40 transition-all duration-200 cursor-pointer shadow-lg"
+          title="Home"
+          aria-label="Go Home"
+        >
+          <Home size={18} />
+        </button>
+        <button 
+          onClick={() => setIsSearchOpen(true)}
+          className="flex items-center justify-center w-11 h-11 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 hover:border-white/40 transition-all duration-200 cursor-pointer shadow-lg"
+          title="Search"
+          aria-label="Search"
+        >
+          <SearchIcon size={18} />
+        </button>
+      </div>
 
       {/* Hero Section */}
       <div className="relative min-h-[580px] sm:min-h-[640px] md:min-h-[75vh] w-full bg-black overflow-hidden flex items-end justify-center pb-8 sm:pb-12 md:pb-16 pt-20 sm:pt-24">
@@ -527,6 +578,68 @@ export const PersonPage: React.FC = () => {
             </>
           )}
         </motion.div>
+      {/* Search Overlay */}
+      {isSearchOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex flex-col md:items-center md:justify-center p-0 md:p-8 animate-in fade-in duration-200">
+          <div className="w-full h-full md:h-[85vh] max-w-4xl bg-black/30 backdrop-blur-xl md:border md:border-white/10 md:rounded-2xl flex flex-col p-4 sm:p-6 md:p-8 md:shadow-2xl relative overflow-hidden">
+            <div className="w-full mx-auto flex items-center gap-4 mb-8 shrink-0 mt-4 md:mt-0">
+              <SearchIcon size={28} className="text-white/60 shrink-0" />
+              <input 
+                autoFocus
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none text-2xl sm:text-3xl text-white font-sans font-medium placeholder-white/40"
+              />
+              <button 
+                onClick={() => setIsSearchOpen(false)}
+                className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors text-white shrink-0 cursor-pointer"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="w-full mx-auto flex-1 overflow-y-auto no-scrollbar pb-20 md:pb-0">
+            {searchLoading && debouncedSearchQuery.length > 1 && (
+              <div className="text-white/60 text-center mt-12 font-sans text-lg">Searching...</div>
+            )}
+            
+            {!searchLoading && searchResults?.results && searchResults.results.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {searchResults.results.filter((item: any) => {
+                  const type = item.media_type ?? 'movie';
+                  return !hiddenItems.some(h => h.id === item.id && h.type === type) &&
+                         !dismissed.some(d => d.id === item.id && d.type === type);
+                }).map((item: any) => (
+                  <div key={item.id} onClick={() => {
+                    setIsSearchOpen(false);
+                    setSearchQuery('');
+                    setDebouncedSearchQuery('');
+                    if (item.media_type === 'movie' || item.media_type === 'tv') {
+                      navigate({ to: '/detail/$id', params: { id: item.id.toString() }, search: { type: item.media_type } });
+                    }
+                  }}>
+                    <PosterCard 
+                      id={item.id}
+                      title={item.title || item.name}
+                      posterPath={item.poster_path}
+                      mediaType={item.media_type as 'movie' | 'tv'}
+                      voteAverage={item.vote_average}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {!searchLoading && debouncedSearchQuery.length > 1 && searchResults?.results?.length === 0 && (
+              <div className="text-white/60 text-center mt-12 font-sans text-lg">No results found for "{debouncedSearchQuery}"</div>
+            )}
+          </div>
+        </div>
+        </div>
+      )}
+
     </div>
   );
 };

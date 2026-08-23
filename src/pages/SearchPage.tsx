@@ -10,6 +10,8 @@ import {
 import { type TMDBPerson } from '../api/tmdb';
 import { useSearch, type SearchType } from '../hooks/useSearch';
 import { useFilterStore } from '../store/filterStore';
+import { useHiddenStore } from '../store/hiddenStore';
+import { useDismissedStore } from '../store/dismissedStore';
 import { SearchAutocomplete } from '../components/SearchAutocomplete';
 import { PosterCard } from '../components/PosterCard';
 import { SkeletonCard } from '../components/SkeletonCard';
@@ -36,6 +38,8 @@ export const SearchPage: React.FC = () => {
 
   const searchFilter = useFilterStore((state) => state.search);
   const originLanguage = searchFilter === 'all' ? undefined : searchFilter;
+  const hiddenItems = useHiddenStore((state) => state.hiddenItems);
+  const dismissed = useDismissedStore((state) => state.dismissed);
 
   // Sync route query change
   if (prevRouteQuery !== routeQuery) {
@@ -258,7 +262,12 @@ export const SearchPage: React.FC = () => {
         {!isLoading && !isError && results.length > 0 && (
           <div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-5 md:gap-6">
-              {results.map((item) => {
+              {results.filter(item => {
+                if (item.media_type === 'person') return true;
+                const hType = (item.media_type as 'movie' | 'tv') ?? (selectedType === 'tv' ? 'tv' : 'movie');
+                return !hiddenItems.some(h => h.id === item.id && h.type === hType) &&
+                       !dismissed.some(d => d.id === item.id && d.type === hType);
+              }).map((item) => {
                 if (item.media_type === 'person') {
                   return renderPersonCard(item as TMDBPerson);
                 }

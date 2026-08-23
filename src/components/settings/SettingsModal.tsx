@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Key, Sliders } from 'lucide-react';
+import { X, User, Key, Sliders, Eye, EyeOff } from 'lucide-react';
 import { useKeyStore } from '../../store/keyStore';
 import { useFilterStore, type DramaRegion } from '../../store/filterStore';
+import { useHiddenStore } from '../../store/hiddenStore';
 
 interface SettingsModalProps {
   open: boolean;
@@ -150,6 +151,7 @@ const ApiKeyTab = () => {
   const { apiKey, setApiKey } = useKeyStore();
   const [input, setInput] = useState('');
   const [isEditing, setIsEditing] = useState(!apiKey);
+  const [showKey, setShowKey] = useState(false);
 
   const handleSave = () => {
     if (input.trim()) {
@@ -163,8 +165,15 @@ const ApiKeyTab = () => {
       <h3 className="text-sm font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">TMDB API Key</h3>
       {!isEditing && apiKey ? (
         <div className="flex flex-col gap-3">
-          <div className="p-3 bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg text-sm text-[var(--color-text-primary)] font-mono break-all">
-            {apiKey.slice(0, 4)}...{apiKey.slice(-4)}
+          <div className="p-3 bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg text-sm text-[var(--color-text-primary)] font-mono break-all flex justify-between items-center gap-2">
+            <span>{showKey ? apiKey : `${apiKey.slice(0, 4)}...${apiKey.slice(-4)}`}</span>
+            <button
+              onClick={() => setShowKey(!showKey)}
+              className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors shrink-0"
+              aria-label={showKey ? "Hide API Key" : "Show API Key"}
+            >
+              {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
           <button onClick={() => { setInput(apiKey); setIsEditing(true); }} className="text-sm text-[var(--color-accent)] hover:underline self-start">
             Change API Key
@@ -207,7 +216,9 @@ const REGIONS: { label: string; value: DramaRegion }[] = [
 ];
 
 const FiltersTab = () => {
-  const { homepage, recommendations, search, hideAdult, hideVarietyShows, hideBL, hideLesbian, setFilter, setContentOption } = useFilterStore();
+  const { homepage, recommendations, search, hideAdult, hideVarietyShows, hideNSFW, setFilter, setContentOption } = useFilterStore();
+  const hiddenItems = useHiddenStore((state) => state.hiddenItems);
+  const clearAllHidden = useHiddenStore((state) => state.clearAll);
 
   const renderSection = (title: string, scope: 'homepage' | 'recommendations' | 'search', currentValue: DramaRegion) => (
     <div className="mb-8">
@@ -241,8 +252,24 @@ const FiltersTab = () => {
         <div className="flex flex-col gap-4">
           <ToggleOption label="Hide Adult Content" description="" value={hideAdult} onChange={() => setContentOption('hideAdult', !hideAdult)} />
           <ToggleOption label="Hide Variety & Reality Shows" description="" value={hideVarietyShows} onChange={() => setContentOption('hideVarietyShows', !hideVarietyShows)} />
-          <ToggleOption label="Hide BL / Boys Love" description="Filters known BL/GL titles by keyword" value={hideBL} onChange={() => setContentOption('hideBL', !hideBL)} />
-          <ToggleOption label="Hide Yuri / GL Content" description="Filters known BL/GL titles by keyword" value={hideLesbian} onChange={() => setContentOption('hideLesbian', !hideLesbian)} />
+          <ToggleOption label="Hide NSFW" description="Filters adult-oriented and explicit content" value={hideNSFW} onChange={() => setContentOption('hideNSFW', !hideNSFW)} />
+        </div>
+      </div>
+
+      <div className="mb-8">
+        <h3 className="text-sm font-semibold text-[var(--color-text-muted)] mb-3 uppercase tracking-wider">Hidden Items</h3>
+        <div className="flex items-center justify-between border border-[var(--color-border-subtle)] rounded-xl p-4 bg-[var(--color-surface)]/30">
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-[var(--color-text-primary)]">{hiddenItems.length} items hidden</span>
+            <span className="text-xs text-[var(--color-text-muted)] mt-0.5">Items you manually hid from view</span>
+          </div>
+          <button 
+            onClick={clearAllHidden} 
+            disabled={hiddenItems.length === 0}
+            className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs font-medium transition-colors disabled:opacity-50"
+          >
+            Clear all hidden
+          </button>
         </div>
       </div>
     </div>
