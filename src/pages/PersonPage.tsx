@@ -251,10 +251,10 @@ const FilmographySection: React.FC<{
   const [sort, setSort] = useState<SortMode>('year_desc');
 
   const tabs: { id: FilmographyTab; label: string; count: number }[] = [
-    { id: 'all', label: 'All', count: dramas.length + movies.length + variety.length },
-    { id: 'drama', label: 'Drama', count: dramas.length },
-    { id: 'movies', label: 'Movies', count: movies.length },
-    { id: 'tv', label: 'TV Shows', count: variety.length },
+    { id: 'all' as FilmographyTab, label: 'All', count: dramas.length + movies.length + variety.length },
+    { id: 'drama' as FilmographyTab, label: 'Drama', count: dramas.length },
+    { id: 'movies' as FilmographyTab, label: 'Movies', count: movies.length },
+    { id: 'tv' as FilmographyTab, label: 'TV Shows', count: variety.length },
   ].filter(t => t.id === 'all' || t.count > 0);
 
   const sortOptions: { id: SortMode; label: string }[] = [
