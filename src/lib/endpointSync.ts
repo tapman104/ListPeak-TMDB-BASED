@@ -1,4 +1,5 @@
 import { localAdapter } from './storage/localAdapter';
+import { useKeyStore } from '../store/keyStore';
 
 const ENDPOINT_KEY = 'listpeak_sync_endpoint';
 
@@ -14,13 +15,28 @@ export function clearEndpoint() {
   localStorage.removeItem(ENDPOINT_KEY);
 }
 
+const TOKEN_KEY = 'listpeak_sync_token';
+
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token: string) {
+  if (token) localStorage.setItem(TOKEN_KEY, token.trim());
+  else localStorage.removeItem(TOKEN_KEY);
+}
+
 export async function pushToEndpoint(data: any): Promise<boolean> {
   const url = getEndpoint();
   if (!url) return false;
   try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const token = getToken();
+    if (token) headers['X-Token'] = token;
+
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(data),
     });
     return res.ok;
@@ -39,7 +55,11 @@ export async function pullFromEndpoint(): Promise<{ success: boolean; log: strin
   _isPulling = true;
   try {
     log.push('Connecting to endpoint...');
-    const res = await fetch(url);
+    const headers: Record<string, string> = {};
+    const token = getToken();
+    if (token) headers['X-Token'] = token;
+
+    const res = await fetch(url, { headers });
     if (!res.ok) {
       log.push(`Failed: HTTP ${res.status}`);
       return { success: false, log };
@@ -75,6 +95,6 @@ export function debouncedSync() {
   if (_debounceTimer) clearTimeout(_debounceTimer);
   _debounceTimer = setTimeout(async () => {
     const data = await localAdapter.exportAll();
-    await pushToEndpoint(data);
+    await pushToEndpoint({ ...data, apiKey: useKeyStore.getState().apiKey });
   }, 2000);
 }

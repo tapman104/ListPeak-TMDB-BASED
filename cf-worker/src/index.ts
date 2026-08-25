@@ -1,17 +1,25 @@
 export interface Env {
   STORE: KVNamespace;
+  SECRET_TOKEN?: string;
 }
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Token',
 };
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: CORS });
+    }
+
+    if (env.SECRET_TOKEN) {
+      const token = request.headers.get('X-Token');
+      if (token !== env.SECRET_TOKEN) {
+        return new Response('Forbidden', { status: 403, headers: CORS });
+      }
     }
 
     const key = 'listpeak_data';
