@@ -97,6 +97,9 @@ export const SetupPage: React.FC = () => {
       setPullSuccess(res.success);
       if (res.success) {
         startBackgroundPrefetch();
+        if (!useKeyStore.getState().apiKey) {
+          setLogs(prev => [...prev, 'Notice: No API key in backup. Please provide one next.']);
+        }
       }
     } catch (err: any) {
       setLogs(prev => [...prev, err.message]);
@@ -306,11 +309,17 @@ export const SetupPage: React.FC = () => {
                   </button>
                 ) : (
                   <button
-                    onClick={() => navigate({ to: '/' })}
+                    onClick={() => {
+                      if (!useKeyStore.getState().apiKey) {
+                        setView('new-step1');
+                      } else {
+                        navigate({ to: '/' });
+                      }
+                    }}
                     type="button"
                     className="w-full bg-[var(--color-accent)] hover:bg-[#6b4ce6] text-white font-sans font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors min-h-[48px] text-sm cursor-pointer mt-4"
                   >
-                    Enter App <ArrowRight size={18} />
+                    {useKeyStore.getState().apiKey ? 'Enter App' : 'Continue'} <ArrowRight size={18} />
                   </button>
                 )}
               </form>
