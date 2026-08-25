@@ -77,15 +77,28 @@ const TabButton = ({ active, onClick, icon, label }: { active: boolean, onClick:
 
 import { exportToQR, importFromQR, generateQRDataURL } from '../../lib/qr';
 import { localAdapter } from '../../lib/storage/localAdapter';
-import { getEndpoint, setEndpoint, clearEndpoint, pullFromEndpoint, pushToEndpoint } from '../../lib/endpointSync';
+import { getEndpoint, setEndpoint, clearEndpoint, pullFromEndpoint, pushToEndpoint, changeCredentials } from '../../lib/endpointSync';
 
 const SyncTab = () => {
   const [url, setUrl] = useState(getEndpoint() || '');
+  const [username, setUsername] = useState(() => localStorage.getItem('listpeak_sync_username') || '');
+  const [password, setPassword] = useState(() => localStorage.getItem('listpeak_sync_password') || '');
+  const [showPassword, setShowPassword] = useState(false);
   const [syncLog, setSyncLog] = useState<string[]>([]);
   const [syncing, setSyncing] = useState(false);
+  
+  const hasSavedCreds = !!localStorage.getItem('listpeak_sync_username') && !!localStorage.getItem('listpeak_sync_password');
+  const [newUsername, setNewUsername] = useState(() => localStorage.getItem('listpeak_sync_username') || '');
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPasswordValue, setNewPasswordValue] = useState('');
+  const [changeCredsLog, setChangeCredsLog] = useState<{msg: string, error?: boolean} | null>(null);
+  const [isUpdatingCreds, setIsUpdatingCreds] = useState(false);
 
   const handleSave = async () => {
     setEndpoint(url);
+    localStorage.setItem('listpeak_sync_username', username.trim());
+    localStorage.setItem('listpeak_sync_password', password);
+    setNewUsername(username.trim());
     setSyncLog(['Pushing current data to endpoint...']);
     setSyncing(true);
     const data = await localAdapter.exportAll();
@@ -107,8 +120,34 @@ const SyncTab = () => {
 
   const handleClear = () => {
     clearEndpoint();
+    localStorage.removeItem('listpeak_sync_username');
+    localStorage.removeItem('listpeak_sync_password');
     setUrl('');
+    setUsername('');
+    setPassword('');
     setSyncLog(['Endpoint cleared.']);
+  };
+
+  const handleUpdateCreds = async () => {
+    const ep = getEndpoint();
+    if (!ep) return;
+    setIsUpdatingCreds(true);
+    setChangeCredsLog(null);
+    const res = await changeCredentials(ep, newUsername.trim(), oldPassword, newPasswordValue);
+    if (res.success) {
+      setChangeCredsLog({ msg: 'Credentials updated successfully' });
+      // Update local state if the user changed the username
+      if (newUsername.trim() !== username) {
+        setUsername(newUsername.trim());
+        localStorage.setItem('listpeak_sync_username', newUsername.trim());
+      }
+      setPassword(newPasswordValue);
+      setOldPassword('');
+      setNewPasswordValue('');
+    } else {
+      setChangeCredsLog({ msg: res.error || 'Failed to update credentials', error: true });
+    }
+    setIsUpdatingCreds(false);
   };
 
   return (
@@ -119,13 +158,38 @@ const SyncTab = () => {
           Paste your Cloudflare Worker or Apps Script URL. Same URL on any device = shared data.
         </p>
         
-        <input
-          type="text"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://listpeak-sync.username.workers.dev"
-          className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-4 py-2.5 text-white font-sans text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors mb-4"
-        />
+        <div className="flex flex-col gap-3 mb-4">
+          <input
+            type="text"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://listpeak-sync.username.workers.dev"
+            className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-4 py-2.5 text-white font-sans text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors"
+          />
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Username"
+            className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-4 py-2.5 text-white font-sans text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors"
+          />
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-4 py-2.5 text-white font-sans text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+        </div>
 
         <div className="flex flex-wrap gap-2">
           <button 
@@ -173,6 +237,49 @@ const SyncTab = () => {
           </div>
         )}
       </div>
+
+      {hasSavedCreds && (
+        <div className="border-t border-[var(--color-border-subtle)] pt-6 mt-2">
+          <h3 className="text-sm font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-4">Change Credentials</h3>
+          <div className="flex flex-col gap-3">
+            <input
+              type="text"
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+              placeholder="Username"
+              className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-4 py-2.5 text-white font-sans text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors"
+            />
+            <input
+              type="password"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              placeholder="Current Password"
+              className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-4 py-2.5 text-white font-sans text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors"
+            />
+            <input
+              type="password"
+              value={newPasswordValue}
+              onChange={(e) => setNewPasswordValue(e.target.value)}
+              placeholder="New Password"
+              className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-4 py-2.5 text-white font-sans text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors"
+            />
+            <div className="flex items-center gap-4 mt-1">
+              <button
+                onClick={handleUpdateCreds}
+                disabled={isUpdatingCreds || !newUsername.trim() || !oldPassword || !newPasswordValue}
+                className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 text-sm"
+              >
+                {isUpdatingCreds ? 'Updating...' : 'Update'}
+              </button>
+              {changeCredsLog && (
+                <span className={`text-sm ${changeCredsLog.error ? 'text-red-400' : 'text-green-400'}`}>
+                  {changeCredsLog.msg}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

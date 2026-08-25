@@ -2,6 +2,8 @@ import { localAdapter } from './storage/localAdapter';
 import { useKeyStore } from '../store/keyStore';
 
 const ENDPOINT_KEY = 'listpeak_sync_endpoint';
+const USERNAME_KEY = 'listpeak_sync_username';
+const PASSWORD_KEY = 'listpeak_sync_password';
 
 export function getEndpoint(): string | null {
   return localStorage.getItem(ENDPOINT_KEY);
@@ -17,27 +19,19 @@ export function clearEndpoint() {
 
 const TOKEN_KEY = 'listpeak_sync_token';
 
-export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-export function setToken(token: string) {
-  if (token) localStorage.setItem(TOKEN_KEY, token.trim());
-  else localStorage.removeItem(TOKEN_KEY);
-}
-
 export async function pushToEndpoint(data: any): Promise<boolean> {
   const url = getEndpoint();
   if (!url) return false;
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    const token = getToken();
-    if (token) headers['X-Token'] = token;
+
+    const username = localStorage.getItem(USERNAME_KEY) || '';
+    const password = localStorage.getItem(PASSWORD_KEY) || '';
 
     const res = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, username, password }),
     });
     return res.ok;
   } catch {
@@ -47,7 +41,7 @@ export async function pushToEndpoint(data: any): Promise<boolean> {
 
 let _isPulling = false;
 
-export async function pullFromEndpoint(): Promise<{ success: boolean; log: string[] }> {
+export async function pullFromEndpoint(): Promise<{ success: boolean; log: string[]; data?: any }> {
   const url = getEndpoint();
   const log: string[] = [];
   if (!url) return { success: false, log: ['No endpoint configured'] };
@@ -55,14 +49,19 @@ export async function pullFromEndpoint(): Promise<{ success: boolean; log: strin
   _isPulling = true;
   try {
     log.push('Connecting to endpoint...');
-    const headers: Record<string, string> = {};
-    const token = getToken();
-    if (token) headers['X-Token'] = token;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
-    const res = await fetch(url, { headers });
+    const username = localStorage.getItem(USERNAME_KEY) || '';
+    const password = localStorage.getItem(PASSWORD_KEY) || '';
+
+    const res = await fetch(url, { 
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ action: 'pull', username, password })
+    });
     if (!res.ok) {
       log.push(`Failed: HTTP ${res.status}`);
-      return { success: false, log };
+      return { success: false, log, data: null };
     }
 
     log.push('Received data from cloud');
@@ -70,17 +69,17 @@ export async function pullFromEndpoint(): Promise<{ success: boolean; log: strin
 
     if (!data || (!data.watchlist && !data.filters && !data.apiKey)) {
       log.push('Cloud is empty — nothing to apply');
-      return { success: false, log };
+      return { success: false, log, data };
     }
 
     log.push(`Applying watchlist (${data.watchlist?.length ?? 0} items)...`);
     await localAdapter.importAll(data);
 
     log.push('Done — all data applied');
-    return { success: true, log };
+    return { success: true, log, data };
   } catch (e) {
     log.push(`Error: ${e instanceof Error ? e.message : 'Unknown error'}`);
-    return { success: false, log };
+    return { success: false, log, data: null };
   } finally {
     // Small delay so the store subscriptions fire BEFORE we re-enable sync
     setTimeout(() => { _isPulling = false; }, 500);
@@ -95,6 +94,29 @@ export function debouncedSync() {
   if (_debounceTimer) clearTimeout(_debounceTimer);
   _debounceTimer = setTimeout(async () => {
     const data = await localAdapter.exportAll();
-    await pushToEndpoint({ ...data, apiKey: useKeyStore.getState().apiKey });
+    await pushToEndpoint(data);
   }, 2000);
+}
+
+export async function changeCredentials(
+  endpoint: string,
+  username: string, 
+  oldPassword: string, 
+  newPassword: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'change-password', username, oldPassword, newPassword })
+    });
+    const data = await res.json();
+    if (data.success) {
+      localStorage.setItem(PASSWORD_KEY, newPassword);
+      return { success: true };
+    }
+    return { success: false, error: data.error || 'Failed to update credentials' };
+  } catch (e) {
+    return { success: false, error: 'Network error' };
+  }
 }
