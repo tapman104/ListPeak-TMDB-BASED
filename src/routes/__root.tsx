@@ -2,7 +2,7 @@ import { createRootRoute, Outlet, useRouter } from '@tanstack/react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
-import { getEndpoint, pullFromEndpoint } from '../lib/endpointSync';
+import { getEndpoint } from '../lib/endpointSync';
 import { useWatchlistStore } from '../store/watchlistStore';
 import { useKeyStore } from '../store/keyStore';
 import { startBackgroundPrefetch } from '../lib/bgPrefetch';
