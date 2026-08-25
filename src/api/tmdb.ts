@@ -378,3 +378,17 @@ export const createTMDBClient = (apiKey: string) => {
     },
   };
 };
+
+export async function getMediaDetails(
+  type: 'movie' | 'tv',
+  id: number,
+  apiKey: string
+): Promise<{ title?: string; name?: string; poster_path?: string | null } | null> {
+  try {
+    const res = await fetch(`https://api.themoviedb.org/3/${type}/${id}?api_key=${apiKey}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}

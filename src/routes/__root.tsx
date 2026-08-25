@@ -24,22 +24,22 @@ const RootComponent = () => {
   useEffect(() => {
     const init = async () => {
       const hasKey = !!useKeyStore.getState().apiKey;
-      const hasEndpoint = !!getEndpoint();
+      const hasEndpoint = !!localStorage.getItem('listpeak_sync_endpoint');
 
-      // No key and no endpoint = new user → setup
-      if (!hasKey && !hasEndpoint) {
-        router.navigate({ to: '/setup' });
+      // If has apiKey locally → already set up → stay, run startBackgroundPrefetch silently
+      if (hasKey) {
+        startBackgroundPrefetch();
         return;
       }
 
-      // Has endpoint but no local data = returning user → setup (returning path)
-      if (hasEndpoint && useWatchlistStore.getState().getAllEntries().length === 0) {
+      // If no key but has endpoint → returning user → setup (returning path)
+      if (hasEndpoint) {
         router.navigate({ to: '/setup', search: { returning: true } });
         return;
       }
 
-      // Has everything locally → start bg prefetch silently
-      if (hasKey) startBackgroundPrefetch();
+      // If no key and no endpoint → new user → setup
+      router.navigate({ to: '/setup' });
     };
     init();
   }, []);

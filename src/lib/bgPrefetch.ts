@@ -1,4 +1,4 @@
-import { createTMDBClient } from '../api/tmdb';
+import { getMediaDetails } from '../api/tmdb';
 import { useWatchlistStore } from '../store/watchlistStore';
 import { useKeyStore } from '../store/keyStore';
 
@@ -16,13 +16,11 @@ export async function startBackgroundPrefetch(
   const missing = items.filter(i => !i.posterPath || !i.title);
   if (missing.length === 0) return;
 
-  const client = createTMDBClient(apiKey);
-
   let done = 0;
   for (const item of missing) {
     await new Promise(res => setTimeout(res, INTERVAL));
     try {
-      const detail = await client.getMediaDetails(String(item.id), item.type);
+      const detail = await getMediaDetails(item.type, item.id, apiKey);
       if (detail) {
         useWatchlistStore.getState().upsert({
           ...item,
