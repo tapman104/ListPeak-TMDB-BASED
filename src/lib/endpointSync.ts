@@ -1,5 +1,4 @@
 import { localAdapter } from './storage/localAdapter';
-import { useKeyStore } from '../store/keyStore';
 
 const ENDPOINT_KEY = 'listpeak_sync_endpoint';
 const USERNAME_KEY = 'listpeak_sync_username';
@@ -16,8 +15,6 @@ export function setEndpoint(url: string) {
 export function clearEndpoint() {
   localStorage.removeItem(ENDPOINT_KEY);
 }
-
-const TOKEN_KEY = 'listpeak_sync_token';
 
 export async function pushToEndpoint(data: any): Promise<boolean> {
   const url = getEndpoint();
