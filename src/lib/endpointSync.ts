@@ -9,7 +9,20 @@ export function getEndpoint(): string | null {
 }
 
 export function setEndpoint(url: string) {
-  localStorage.setItem(ENDPOINT_KEY, url.trim());
+  let cleanUrl = url.trim();
+  if (cleanUrl) {
+    if (!cleanUrl.startsWith('http')) {
+      cleanUrl = (cleanUrl.includes('localhost') || cleanUrl.includes('127.0.0.1')) 
+        ? 'http://' + cleanUrl 
+        : 'https://' + cleanUrl;
+    } else if (cleanUrl.startsWith('http://') && !cleanUrl.includes('localhost') && !cleanUrl.includes('127.0.0.1')) {
+      cleanUrl = cleanUrl.replace('http://', 'https://');
+    }
+    if (cleanUrl.endsWith('/')) {
+      cleanUrl = cleanUrl.slice(0, -1);
+    }
+  }
+  localStorage.setItem(ENDPOINT_KEY, cleanUrl);
 }
 
 export function clearEndpoint() {
