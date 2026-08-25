@@ -6,6 +6,7 @@ import { useFilterStore, type DramaRegion } from '../../store/filterStore';
 import { useHiddenStore } from '../../store/hiddenStore';
 import { useApiStatsStore } from '../../store/apiStatsStore';
 import { getRateLimitStatus } from '../../lib/rateLimiter';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface SettingsModalProps {
   open: boolean;
@@ -511,6 +512,15 @@ const ApiTab = ({ onTabChange }: { onTabChange: (tab: TabType) => void }) => {
   const { apiKey } = useKeyStore();
   const stats = useApiStatsStore();
   const [rateLimit, setRateLimit] = useState(() => getRateLimitStatus());
+  const queryClient = useQueryClient();
+
+  const handleHardReset = () => {
+    if (window.confirm('Are you sure you want to clear all cached API data? This will force a full refresh on next load.')) {
+      queryClient.clear();
+      localStorage.removeItem('REACT_QUERY_OFFLINE_CACHE');
+      window.location.reload();
+    }
+  };
 
   const usagePercent = Math.min(100, (rateLimit.used / rateLimit.max) * 100);
   let progressColor = "bg-green-500";
@@ -613,10 +623,27 @@ const ApiTab = ({ onTabChange }: { onTabChange: (tab: TabType) => void }) => {
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
-            <span className="text-green-500">✓</span> No errors this session
+          <div className="text-sm text-[var(--color-text-muted)] italic p-3 text-center border border-dashed border-[var(--color-border-subtle)] rounded-lg">
+            No errors in current session
           </div>
         )}
+      </div>
+
+      {/* SECTION 5: CACHE RESET */}
+      <div>
+        <h3 className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-3">Maintenance</h3>
+        <div className="border border-[var(--color-border-subtle)] rounded-xl p-4 bg-[var(--color-surface)]/30 flex justify-between items-center">
+          <div>
+            <div className="text-sm font-medium text-[var(--color-text-primary)]">Hard Reset Cache</div>
+            <div className="text-xs text-[var(--color-text-muted)] mt-0.5">Clear all downloaded TMDB data and force a fresh sync.</div>
+          </div>
+          <button 
+            onClick={handleHardReset}
+            className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 text-xs font-medium transition-colors whitespace-nowrap"
+          >
+            Reset Cache
+          </button>
+        </div>
       </div>
     </div>
   );

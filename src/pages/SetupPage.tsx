@@ -164,6 +164,17 @@ export const SetupPage: React.FC = () => {
                   I already have my data →
                 </button>
               </div>
+              <button
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to hard reset all cached data?')) {
+                    localStorage.clear();
+                    window.location.reload();
+                  }
+                }}
+                className="mt-6 text-xs text-white/30 hover:text-white/70 transition-colors underline decoration-white/10 underline-offset-4"
+              >
+                Hard Reset Cache
+              </button>
             </motion.div>
           )}
 
