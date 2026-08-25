@@ -29,9 +29,9 @@ export const SetupPage: React.FC = () => {
 
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
-  const [endpointInput, setEndpointInput] = useState('');
-  const [usernameInput, setUsernameInput] = useState('');
-  const [passwordInput, setPasswordInput] = useState('');
+  const [endpointInput, setEndpointInput] = useState(() => localStorage.getItem('listpeak_sync_endpoint') || '');
+  const [usernameInput, setUsernameInput] = useState(() => localStorage.getItem('listpeak_sync_username') || '');
+  const [passwordInput, setPasswordInput] = useState(() => localStorage.getItem('listpeak_sync_password') || '');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

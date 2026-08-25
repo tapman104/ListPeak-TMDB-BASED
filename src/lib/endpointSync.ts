@@ -64,6 +64,12 @@ export async function pullFromEndpoint(): Promise<{ success: boolean; log: strin
       return { success: false, log, data: null };
     }
 
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const text = await res.text();
+      throw new Error(`Expected JSON but got ${contentType}: ${text.slice(0, 200)}`);
+    }
+
     log.push('Received data from cloud');
     const data = await res.json();
 
