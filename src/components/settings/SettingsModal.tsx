@@ -81,28 +81,34 @@ import { getEndpoint, setEndpoint, clearEndpoint, pullFromEndpoint, pushToEndpoi
 
 const SyncTab = () => {
   const [url, setUrl] = useState(getEndpoint() || '');
-  const [status, setStatus] = useState('');
-  const [isPulling, setIsPulling] = useState(false);
+  const [syncLog, setSyncLog] = useState<string[]>([]);
+  const [syncing, setSyncing] = useState(false);
 
   const handleSave = async () => {
     setEndpoint(url);
-    setStatus('Saving to cloud...');
-    const ok = await pushToEndpoint();
-    setStatus(ok ? 'Successfully synced to cloud!' : 'Failed to push to cloud.');
+    setSyncLog(['Pushing current data to endpoint...']);
+    setSyncing(true);
+    const data = await localAdapter.exportAll();
+    const ok = await pushToEndpoint(data);
+    setSyncLog([
+      'Endpoint saved',
+      ok ? 'Push successful ✓' : 'Push failed — check URL'
+    ]);
+    setSyncing(false);
   };
 
   const handlePull = async () => {
-    setIsPulling(true);
-    setStatus('Pulling from cloud...');
-    const ok = await pullFromEndpoint();
-    setIsPulling(false);
-    setStatus(ok ? 'Successfully applied data from cloud!' : 'Failed to pull or empty response.');
+    setSyncing(true);
+    setSyncLog(['Starting pull...']);
+    const result = await pullFromEndpoint();
+    setSyncLog(result.log);
+    setSyncing(false);
   };
 
   const handleClear = () => {
     clearEndpoint();
     setUrl('');
-    setStatus('Endpoint cleared.');
+    setSyncLog(['Endpoint cleared.']);
   };
 
   return (
@@ -132,7 +138,7 @@ const SyncTab = () => {
           
           <button 
             onClick={handlePull} 
-            disabled={!url.trim() || isPulling} 
+            disabled={!url.trim() || syncing} 
             className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 text-sm"
           >
             Pull from cloud
@@ -147,9 +153,23 @@ const SyncTab = () => {
           </button>
         </div>
 
-        {status && (
-          <div className="mt-4 text-sm font-medium text-[var(--color-text-primary)]">
-            {status}
+        {syncLog.length > 0 && (
+          <div style={{
+            marginTop: '12px',
+            padding: '10px 12px',
+            background: 'rgba(255,255,255,0.05)',
+            borderRadius: '8px',
+            fontSize: '12px',
+            lineHeight: '1.8',
+            fontFamily: 'monospace',
+            color: 'var(--text-secondary, #aaa)'
+          }}>
+            {syncLog.map((line, i) => (
+              <div key={i}>
+                {syncing && i === syncLog.length - 1 ? '⏳ ' : '✓ '}
+                {line}
+              </div>
+            ))}
           </div>
         )}
       </div>

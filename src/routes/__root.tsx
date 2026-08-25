@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { getEndpoint, pullFromEndpoint } from '../lib/endpointSync';
 import { useWatchlistStore } from '../store/watchlistStore';
+import { useKeyStore } from '../store/keyStore';
+import { startBackgroundPrefetch } from '../lib/bgPrefetch';
 
 const RootComponent = () => {
   const router = useRouter();
@@ -20,15 +22,26 @@ const RootComponent = () => {
   }, []);
 
   useEffect(() => {
-    const initSync = async () => {
-      if (getEndpoint()) {
-        const watchlistSize = useWatchlistStore.getState().getAllEntries().length;
-        if (watchlistSize === 0) {
-          await pullFromEndpoint();
-        }
+    const init = async () => {
+      const hasKey = !!useKeyStore.getState().apiKey;
+      const hasEndpoint = !!getEndpoint();
+
+      // No key and no endpoint = new user → setup
+      if (!hasKey && !hasEndpoint) {
+        router.navigate({ to: '/setup' });
+        return;
       }
+
+      // Has endpoint but no local data = returning user → setup (returning path)
+      if (hasEndpoint && useWatchlistStore.getState().getAllEntries().length === 0) {
+        router.navigate({ to: '/setup', search: { returning: true } });
+        return;
+      }
+
+      // Has everything locally → start bg prefetch silently
+      if (hasKey) startBackgroundPrefetch();
     };
-    initSync();
+    init();
   }, []);
   
   return (

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { debouncedSync } from '../lib/endpointSync';
 
 export interface WatchlistEntry {
   id: number;
@@ -32,28 +33,34 @@ export const useWatchlistStore = create<WatchlistState>()(
   persist(
     (set, get) => ({
       entries: {},
-      upsert: (entry) => set((state) => {
-        const key = `${entry.type}-${entry.id}`;
-        const existing = state.entries[key];
-        const now = new Date().toISOString();
-        return {
-          entries: {
-            ...state.entries,
-            [key]: {
-              ...existing,
-              ...entry,
-              addedAt: existing ? existing.addedAt : now,
-              updatedAt: now,
+      upsert: (entry) => {
+        set((state) => {
+          const key = `${entry.type}-${entry.id}`;
+          const existing = state.entries[key];
+          const now = new Date().toISOString();
+          return {
+            entries: {
+              ...state.entries,
+              [key]: {
+                ...existing,
+                ...entry,
+                addedAt: existing ? existing.addedAt : now,
+                updatedAt: now,
+              },
             },
-          },
-        };
-      }),
-      remove: (id, type) => set((state) => {
-        const key = `${type}-${id}`;
-        const newEntries = { ...state.entries };
-        delete newEntries[key];
-        return { entries: newEntries };
-      }),
+          };
+        });
+        debouncedSync();
+      },
+      remove: (id, type) => {
+        set((state) => {
+          const key = `${type}-${id}`;
+          const newEntries = { ...state.entries };
+          delete newEntries[key];
+          return { entries: newEntries };
+        });
+        debouncedSync();
+      },
       getEntry: (id, type) => {
         const key = `${type}-${id}`;
         return get().entries[key];

@@ -1,15 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { motion } from 'motion/react';
-import { KeyRound, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { KeyRound, Eye, EyeOff, Loader2, Cloud, ArrowRight } from 'lucide-react';
 import { useKeyStore } from '../store/keyStore';
 import { createTMDBClient } from '../api/tmdb';
+import { Route } from '../routes/setup';
+import { setEndpoint, pullFromEndpoint } from '../lib/endpointSync';
+import { startBackgroundPrefetch } from '../lib/bgPrefetch';
 
-export const SetupPage: React.FC = () => {
+const bgStyle = {
+  backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1920&q=80')`,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+};
+
+const cardStyle = {
+  background: 'rgba(255,255,255,0.05)',
+  backdropFilter: 'blur(12px)',
+};
+
+const NewUserFlow: React.FC = () => {
+  const [step, setStep] = useState<1 | 2>(1);
   const [apiKey, setApiKeyInput] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const [endpointInput, setEndpointInput] = useState('');
+  const [logs, setLogs] = useState<string[]>([]);
   const setKeyStore = useKeyStore((state) => state.setApiKey);
   const navigate = useNavigate();
 
@@ -25,93 +43,256 @@ export const SetupPage: React.FC = () => {
       await client.verifyKey();
       
       setKeyStore(apiKey);
-      navigate({ to: '/' });
+      setStep(2);
     } catch {
       setError('Invalid key. Get one free at themoviedb.org');
     } finally {
       setIsLoading(false);
     }
+  };
 
+  const handleSkip = () => {
+    navigate({ to: '/' });
+  };
+
+  const handleConnect = async () => {
+    if (!endpointInput.trim()) return;
+    setIsLoading(true);
+    setLogs(['Testing connection...']);
+    try {
+      setEndpoint(endpointInput.trim());
+      const res = await pullFromEndpoint();
+      setLogs(res.log);
+      if (res.success) {
+        setTimeout(() => navigate({ to: '/' }), 1000);
+      } else {
+        setIsLoading(false);
+      }
+    } catch (err: any) {
+      setLogs(prev => [...prev, err.message]);
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[var(--color-background)] flex flex-col items-center justify-center p-4 sm:p-6">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6" style={bgStyle}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md bg-[var(--color-card)] p-6 sm:p-8 rounded-2xl shadow-2xl border border-[var(--color-border-subtle)] mx-auto"
+        style={cardStyle}
+        className="w-full max-w-[420px] p-6 sm:p-8 rounded-2xl shadow-2xl border border-[var(--color-border-subtle)] mx-auto"
       >
-        <div className="flex flex-col items-center mb-6 sm:mb-8">
-          <div className="w-12 h-12 bg-[var(--color-accent-dim)] rounded-full flex items-center justify-center mb-3 sm:mb-4">
-            <KeyRound className="text-[var(--color-accent)]" size={24} />
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-display tracking-wide mb-1 sm:mb-2 text-white">ListPeak</h1>
-          <p className="text-[var(--color-text-muted)] text-center text-xs sm:text-sm">
-            Your key, your data. Nothing leaves your browser.
-          </p>
-        </div>
+        <AnimatePresence mode="wait">
+          {step === 1 ? (
+            <motion.div key="step1" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
+              <div className="flex flex-col items-center mb-6 sm:mb-8">
+                <div className="w-12 h-12 bg-[var(--color-accent-dim)] rounded-full flex items-center justify-center mb-3 sm:mb-4">
+                  <KeyRound className="text-[var(--color-accent)]" size={24} />
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-display tracking-wide mb-1 sm:mb-2 text-white">ListPeak</h1>
+                <p className="text-[var(--color-text-muted)] text-center text-xs sm:text-sm">
+                  Your key, your data. Nothing leaves your browser.
+                </p>
+              </div>
 
-        <form onSubmit={handleVerify} className="space-y-4 sm:space-y-6">
-          <motion.div
-            animate={error ? { x: [-10, 10, -10, 10, 0] } : {}}
-            transition={{ duration: 0.4 }}
-          >
-            <div className="relative">
-              <input
-                type={showKey ? 'text' : 'password'}
-                value={apiKey}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-                placeholder="Paste your TMDb API key"
-                className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-xl px-4 py-3.5 pr-12 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-all min-h-[48px]"
-              />
-              <button
-                type="button"
-                onClick={() => setShowKey(!showKey)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors w-10 h-10 flex items-center justify-center cursor-pointer"
-                aria-label={showKey ? 'Hide API key' : 'Show API key'}
-              >
-                {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-            {error && (
-              <p className="text-red-400 text-xs sm:text-sm mt-2 text-center">{error}</p>
-            )}
-          </motion.div>
+              <form onSubmit={handleVerify} className="space-y-4 sm:space-y-6">
+                <motion.div animate={error ? { x: [-10, 10, -10, 10, 0] } : {}} transition={{ duration: 0.4 }}>
+                  <div className="relative">
+                    <input
+                      type={showKey ? 'text' : 'password'}
+                      value={apiKey}
+                      onChange={(e) => setApiKeyInput(e.target.value)}
+                      placeholder="Paste your TMDb API key"
+                      className="w-full bg-[rgba(0,0,0,0.2)] border border-[var(--color-border-subtle)] rounded-xl px-4 py-3.5 pr-12 text-sm text-white placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-all min-h-[48px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowKey(!showKey)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-white transition-colors w-10 h-10 flex items-center justify-center cursor-pointer"
+                    >
+                      {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  {error && <p className="text-red-400 text-xs sm:text-sm mt-2 text-center">{error}</p>}
+                </motion.div>
 
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            type="submit"
-            disabled={isLoading || !apiKey.trim()}
-            className="w-full bg-[var(--color-accent)] hover:bg-[#6b4ce6] text-white font-sans font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] cursor-pointer text-sm"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="animate-spin" size={18} />
-                Verifying...
-              </>
-            ) : (
-              'Verify & Continue'
-            )}
-          </motion.button>
-        </form>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  disabled={isLoading || !apiKey.trim()}
+                  className="w-full bg-[var(--color-accent)] hover:bg-[#6b4ce6] text-white font-sans font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] cursor-pointer text-sm"
+                >
+                  {isLoading ? <><Loader2 className="animate-spin" size={18} />Verifying...</> : 'Verify & Continue'}
+                </motion.button>
+              </form>
 
-        <div className="mt-6 sm:mt-8 flex flex-col items-center gap-3 sm:gap-4">
-          <a
-            href="https://www.themoviedb.org/settings/api"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] text-xs sm:text-sm transition-colors py-1.5 flex items-center min-h-[44px]"
-          >
-            Get a free TMDb API key →
-          </a>
-          <p className="text-[var(--color-text-muted)]/60 text-[11px] sm:text-xs text-center leading-relaxed">
-            Your API key is stored only in your browser's localStorage. We never see it.
-          </p>
-        </div>
+              <div className="mt-6 sm:mt-8 flex flex-col items-center gap-3 sm:gap-4">
+                <a
+                  href="https://www.themoviedb.org/settings/api"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[var(--color-text-muted)] hover:text-white text-xs sm:text-sm transition-colors py-1.5 flex items-center min-h-[44px]"
+                >
+                  Get a free TMDb API key →
+                </a>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div key="step2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
+              <div className="flex flex-col items-center mb-6 sm:mb-8">
+                <div className="w-12 h-12 bg-[var(--color-accent-dim)] rounded-full flex items-center justify-center mb-3 sm:mb-4">
+                  <Cloud className="text-[var(--color-accent)]" size={24} />
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-display tracking-wide mb-1 sm:mb-2 text-white">Sync Endpoint</h1>
+                <p className="text-[var(--color-text-muted)] text-center text-xs sm:text-sm">
+                  Optional: Connect a custom sync worker.
+                </p>
+              </div>
+
+              <div className="space-y-4 sm:space-y-6">
+                <div>
+                  <input
+                    type="text"
+                    value={endpointInput}
+                    onChange={(e) => setEndpointInput(e.target.value)}
+                    placeholder="https://your-worker.workers.dev"
+                    className="w-full bg-[rgba(0,0,0,0.2)] border border-[var(--color-border-subtle)] rounded-xl px-4 py-3.5 text-sm text-white placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-all min-h-[48px]"
+                  />
+                </div>
+
+                {logs.length > 0 && (
+                  <div className="bg-[rgba(0,0,0,0.3)] border border-[var(--color-border-subtle)] rounded-lg p-3 max-h-32 overflow-y-auto font-mono text-[10px] text-gray-300">
+                    {logs.map((log, i) => (
+                      <div key={i}>{log}</div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleSkip}
+                    disabled={isLoading}
+                    className="flex-1 bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.15)] text-white font-sans font-medium py-3 px-4 rounded-xl transition-colors disabled:opacity-50 text-sm"
+                  >
+                    Skip for now
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleConnect}
+                    disabled={isLoading || !endpointInput.trim()}
+                    className="flex-1 bg-[var(--color-accent)] hover:bg-[#6b4ce6] text-white font-sans font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50 text-sm"
+                  >
+                    {isLoading ? <Loader2 className="animate-spin" size={16} /> : 'Connect & Continue'}
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );
 };
 
+const ReturningUserFlow: React.FC = () => {
+  const [logs, setLogs] = useState<string[]>([]);
+  const [isPulling, setIsPulling] = useState(true);
+  const [pullSuccess, setPullSuccess] = useState(false);
+  const [prefetchStats, setPrefetchStats] = useState<{ done: number; total: number } | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    let mounted = true;
+    const doPull = async () => {
+      setLogs(['Connecting to endpoint...']);
+      const res = await pullFromEndpoint();
+      if (!mounted) return;
+      
+      setLogs(res.log);
+      setIsPulling(false);
+      setPullSuccess(res.success);
+
+      if (res.success) {
+        startBackgroundPrefetch((done, total) => {
+          if (mounted) setPrefetchStats({ done, total });
+        });
+      }
+    };
+    doPull();
+    return () => { mounted = false; };
+  }, []);
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6" style={bgStyle}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        style={cardStyle}
+        className="w-full max-w-[420px] p-6 sm:p-8 rounded-2xl shadow-2xl border border-[var(--color-border-subtle)] mx-auto flex flex-col items-center"
+      >
+        <div className="w-12 h-12 bg-[var(--color-accent-dim)] rounded-full flex items-center justify-center mb-3 sm:mb-4">
+          <Cloud className="text-[var(--color-accent)]" size={24} />
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-display tracking-wide mb-1 sm:mb-2 text-white">Welcome back</h1>
+        <p className="text-[var(--color-text-muted)] text-center text-xs sm:text-sm mb-6">
+          Fetching your data...
+        </p>
+
+        <div className="w-full bg-[rgba(0,0,0,0.3)] border border-[var(--color-border-subtle)] rounded-lg p-3 max-h-40 overflow-y-auto font-mono text-[10px] text-gray-300 mb-6 flex flex-col gap-1">
+          {logs.map((log, i) => (
+            <div key={i}>{log}</div>
+          ))}
+          {isPulling && (
+            <div className="flex items-center gap-2 text-[var(--color-accent)] mt-1">
+              <Loader2 className="animate-spin" size={10} />
+              <span>Working...</span>
+            </div>
+          )}
+        </div>
+
+        {pullSuccess && prefetchStats && prefetchStats.total > 0 && (
+          <div className="w-full text-center mb-6">
+            <p className="text-sm text-white mb-2 font-medium">Loading library... {prefetchStats.done} / {prefetchStats.total}</p>
+            <div className="w-full bg-[rgba(255,255,255,0.1)] rounded-full h-1.5 overflow-hidden">
+              <motion.div 
+                className="h-full bg-[var(--color-accent)]"
+                initial={{ width: 0 }}
+                animate={{ width: `${(prefetchStats.done / prefetchStats.total) * 100}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
+          </div>
+        )}
+
+        <AnimatePresence>
+          {!isPulling && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => navigate({ to: '/' })}
+              className="w-full bg-[var(--color-accent)] hover:bg-[#6b4ce6] text-white font-sans font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors min-h-[48px] cursor-pointer text-sm"
+            >
+              Enter App <ArrowRight size={18} />
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </div>
+  );
+};
+
+export const SetupPage: React.FC = () => {
+  const { returning } = Route.useSearch();
+  if (returning) {
+    return <ReturningUserFlow />;
+  }
+  return <NewUserFlow />;
+};

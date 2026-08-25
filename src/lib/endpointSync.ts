@@ -1,7 +1,4 @@
 import { localAdapter } from './storage/localAdapter';
-import { useWatchlistStore } from '../store/watchlistStore';
-import { useKeyStore } from '../store/keyStore';
-import { useFilterStore } from '../store/filterStore';
 
 const ENDPOINT_KEY = 'listpeak_sync_endpoint';
 
@@ -17,11 +14,10 @@ export function clearEndpoint() {
   localStorage.removeItem(ENDPOINT_KEY);
 }
 
-export async function pushToEndpoint(): Promise<boolean> {
+export async function pushToEndpoint(data: any): Promise<boolean> {
   const url = getEndpoint();
   if (!url) return false;
   try {
-    const data = await localAdapter.exportAll();
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -33,45 +29,52 @@ export async function pushToEndpoint(): Promise<boolean> {
   }
 }
 
-export async function pullFromEndpoint(): Promise<boolean> {
+let _isPulling = false;
+
+export async function pullFromEndpoint(): Promise<{ success: boolean; log: string[] }> {
   const url = getEndpoint();
-  if (!url) return false;
+  const log: string[] = [];
+  if (!url) return { success: false, log: ['No endpoint configured'] };
+
+  _isPulling = true;
   try {
+    log.push('Connecting to endpoint...');
     const res = await fetch(url);
-    if (!res.ok) return false;
-    const data = await res.json();
-    
-    // Cloud endpoints might return { settings: null, watchlist: null } when empty
-    // But localAdapter.importAll expects our ExportPayload format.
-    // As long as it doesn't crash on invalid data, we're fine.
-    // If we only have empty objects, we skip importing.
-    if (data && (data.apiKey || data.watchlist || data.filters)) {
-      await localAdapter.importAll(data);
+    if (!res.ok) {
+      log.push(`Failed: HTTP ${res.status}`);
+      return { success: false, log };
     }
-    return true;
-  } catch {
-    return false;
+
+    log.push('Received data from cloud');
+    const data = await res.json();
+
+    if (!data || (!data.watchlist && !data.filters && !data.apiKey)) {
+      log.push('Cloud is empty — nothing to apply');
+      return { success: false, log };
+    }
+
+    log.push(`Applying watchlist (${data.watchlist?.length ?? 0} items)...`);
+    await localAdapter.importAll(data);
+
+    log.push('Done — all data applied');
+    return { success: true, log };
+  } catch (e) {
+    log.push(`Error: ${e instanceof Error ? e.message : 'Unknown error'}`);
+    return { success: false, log };
+  } finally {
+    // Small delay so the store subscriptions fire BEFORE we re-enable sync
+    setTimeout(() => { _isPulling = false; }, 500);
   }
 }
 
-let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let _debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function debouncedSync() {
+  if (_isPulling) return;
   if (!getEndpoint()) return;
-  if (debounceTimer) clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => pushToEndpoint(), 2000);
+  if (_debounceTimer) clearTimeout(_debounceTimer);
+  _debounceTimer = setTimeout(async () => {
+    const data = await localAdapter.exportAll();
+    await pushToEndpoint(data);
+  }, 2000);
 }
-
-// Auto-sync hooks
-let isHydrating = true;
-setTimeout(() => { isHydrating = false; }, 1000); // give it a sec to hydrate
-
-const handleChange = () => {
-  if (!isHydrating) {
-    debouncedSync();
-  }
-};
-
-useWatchlistStore.subscribe(handleChange);
-useKeyStore.subscribe(handleChange);
-useFilterStore.subscribe(handleChange);
