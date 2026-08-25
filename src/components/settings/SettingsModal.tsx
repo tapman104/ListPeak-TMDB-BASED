@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Key, Sliders, Eye, EyeOff, KeyRound } from 'lucide-react';
+import { X, User, Key, Sliders, Eye, EyeOff, KeyRound, Cloud } from 'lucide-react';
 import { useKeyStore } from '../../store/keyStore';
 import { useFilterStore, type DramaRegion } from '../../store/filterStore';
 import { useHiddenStore } from '../../store/hiddenStore';
@@ -12,7 +12,7 @@ interface SettingsModalProps {
   onClose: () => void;
 }
 
-type TabType = 'profile' | 'apikey' | 'filters' | 'api';
+type TabType = 'profile' | 'apikey' | 'filters' | 'api' | 'sync';
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
   const [activeTab, setActiveTab] = useState<TabType>('filters');
@@ -47,6 +47,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
               <TabButton active={activeTab === 'apikey'} onClick={() => setActiveTab('apikey')} icon={<Key size={16} />} label="API Key" />
               <TabButton active={activeTab === 'filters'} onClick={() => setActiveTab('filters')} icon={<Sliders size={16} />} label="Filters" />
               <TabButton active={activeTab === 'api'} onClick={() => setActiveTab('api')} icon={<KeyRound size={16} />} label="API" />
+              <TabButton active={activeTab === 'sync'} onClick={() => setActiveTab('sync')} icon={<Cloud size={16} />} label="Sync" />
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
@@ -54,6 +55,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
               {activeTab === 'apikey' && <ApiKeyTab />}
               {activeTab === 'filters' && <FiltersTab />}
               {activeTab === 'api' && <ApiTab onTabChange={setActiveTab} />}
+              {activeTab === 'sync' && <SyncTab />}
             </div>
           </motion.div>
         </>
@@ -75,6 +77,85 @@ const TabButton = ({ active, onClick, icon, label }: { active: boolean, onClick:
 
 import { exportToQR, importFromQR, generateQRDataURL } from '../../lib/qr';
 import { localAdapter } from '../../lib/storage/localAdapter';
+import { getEndpoint, setEndpoint, clearEndpoint, pullFromEndpoint, pushToEndpoint } from '../../lib/endpointSync';
+
+const SyncTab = () => {
+  const [url, setUrl] = useState(getEndpoint() || '');
+  const [status, setStatus] = useState('');
+  const [isPulling, setIsPulling] = useState(false);
+
+  const handleSave = async () => {
+    setEndpoint(url);
+    setStatus('Saving to cloud...');
+    const ok = await pushToEndpoint();
+    setStatus(ok ? 'Successfully synced to cloud!' : 'Failed to push to cloud.');
+  };
+
+  const handlePull = async () => {
+    setIsPulling(true);
+    setStatus('Pulling from cloud...');
+    const ok = await pullFromEndpoint();
+    setIsPulling(false);
+    setStatus(ok ? 'Successfully applied data from cloud!' : 'Failed to pull or empty response.');
+  };
+
+  const handleClear = () => {
+    clearEndpoint();
+    setUrl('');
+    setStatus('Endpoint cleared.');
+  };
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h3 className="text-sm font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">Sync Endpoint</h3>
+        <p className="text-sm text-[var(--color-text-muted)] mb-4">
+          Paste your Cloudflare Worker or Apps Script URL. Same URL on any device = shared data.
+        </p>
+        
+        <input
+          type="text"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://listpeak-sync.username.workers.dev"
+          className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-4 py-2.5 text-white font-sans text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors mb-4"
+        />
+
+        <div className="flex flex-wrap gap-2">
+          <button 
+            onClick={handleSave} 
+            disabled={!url.trim()} 
+            className="bg-[var(--color-accent)] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#6b4ce6] transition-colors disabled:opacity-50 text-sm"
+          >
+            Save Endpoint
+          </button>
+          
+          <button 
+            onClick={handlePull} 
+            disabled={!url.trim() || isPulling} 
+            className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 text-sm"
+          >
+            Pull from cloud
+          </button>
+
+          <button 
+            onClick={handleClear} 
+            disabled={!url.trim()} 
+            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 text-sm ml-auto"
+          >
+            Clear
+          </button>
+        </div>
+
+        {status && (
+          <div className="mt-4 text-sm font-medium text-[var(--color-text-primary)]">
+            {status}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const ProfileTab = () => {
   const [qrCode, setQrCode] = useState('');

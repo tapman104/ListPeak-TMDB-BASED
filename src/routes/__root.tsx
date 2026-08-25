@@ -2,6 +2,8 @@ import { createRootRoute, Outlet, useRouter } from '@tanstack/react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
+import { getEndpoint, pullFromEndpoint } from '../lib/endpointSync';
+import { useWatchlistStore } from '../store/watchlistStore';
 
 const RootComponent = () => {
   const router = useRouter();
@@ -15,6 +17,18 @@ const RootComponent = () => {
 
     window.addEventListener('tmdb-rate-limit', handleRateLimit);
     return () => window.removeEventListener('tmdb-rate-limit', handleRateLimit);
+  }, []);
+
+  useEffect(() => {
+    const initSync = async () => {
+      if (getEndpoint()) {
+        const watchlistSize = useWatchlistStore.getState().getAllEntries().length;
+        if (watchlistSize === 0) {
+          await pullFromEndpoint();
+        }
+      }
+    };
+    initSync();
   }, []);
   
   return (
