@@ -110,15 +110,15 @@ export const SetupPage: React.FC = () => {
       setEndpoint(endpointInput.trim());
       localStorage.setItem('listpeak_sync_username', usernameInput.trim());
       localStorage.setItem('listpeak_sync_password', passwordInput);
-      const res = await pullFromEndpoint();
-      setLogs(res.log);
+      const result = await pullFromEndpoint();
+      setLogs(result.log);
       
-      if (res.success) {
-        if (res.data && res.data.apiKey) {
-          setKeyStore(res.data.apiKey);
-          setTimeout(() => setView('done'), 1000);
+      if (result.success) {
+        if (result.data?.apiKey) {
+          useKeyStore.getState().setApiKey(result.data.apiKey);
+          setView('done');
         } else {
-          setTimeout(() => setView('restore-apikey'), 1000);
+          setView('restore-apikey');
         }
       } else {
         setError('Failed to restore data.');
