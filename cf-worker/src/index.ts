@@ -1,3 +1,5 @@
+import type { KVNamespace } from '@cloudflare/workers-types';
+
 export interface Env {
   STORE: KVNamespace;
   SECRET_TOKEN?: string;
