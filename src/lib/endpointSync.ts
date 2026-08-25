@@ -85,13 +85,12 @@ export async function pullFromEndpoint(): Promise<{ success: boolean; log: strin
 
     if (!data || (!data.watchlist && !data.filters && !data.apiKey)) {
       log.push('Cloud is empty — nothing to apply');
-      return { success: false, log, data };
+      return { success: true, log, data };   // auth succeeded, just no data yet
+    } else {
+      log.push(`Applying watchlist (${data.watchlist?.length ?? 0} items)...`);
+      await localAdapter.importAll(data);
+      log.push('Done — all data applied');
     }
-
-    log.push(`Applying watchlist (${data.watchlist?.length ?? 0} items)...`);
-    await localAdapter.importAll(data);
-
-    log.push('Done — all data applied');
     return { success: true, log, data };
   } catch (e) {
     log.push(`Error: ${e instanceof Error ? e.message : 'Unknown error'}`);
