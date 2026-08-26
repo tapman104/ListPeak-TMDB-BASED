@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { motion, AnimatePresence } from 'motion/react';
-import { KeyRound, Eye, EyeOff, Loader2, Cloud, User } from 'lucide-react';
+import { KeyRound, Eye, EyeOff, Loader2, Cloud } from 'lucide-react';
 import { useKeyStore } from '../store/keyStore';
 import { createTMDBClient } from '../api/tmdb';
 import { Route } from '../routes/setup';
@@ -23,7 +23,7 @@ const cardStyle = {
 
 export const SetupPage: React.FC = () => {
   const { returning } = Route.useSearch();
-  const [view, setView] = useState<'landing' | 'new-step1' | 'new-step2' | 'new-step3' | 'done' | 'restore' | 'restore-apikey'>(
+  const [view, setView] = useState<'landing' | 'new-step2' | 'new-step3' | 'done' | 'restore' | 'restore-apikey'>(
     returning ? 'restore' : 'landing'
   );
 
@@ -31,9 +31,6 @@ export const SetupPage: React.FC = () => {
   const [showKey, setShowKey] = useState(false);
   const [endpointInput, setEndpointInput] = useState(() => localStorage.getItem('listpeak_sync_endpoint') || '');
   const [tokenValue, setTokenValue] = useState(() => localStorage.getItem('listpeak_sync_token') || '');
-  const [usernameInput, setUsernameInput] = useState(() => localStorage.getItem('listpeak_sync_username') || '');
-  const [passwordInput, setPasswordInput] = useState(() => localStorage.getItem('listpeak_sync_password') || '');
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
@@ -150,7 +147,7 @@ export const SetupPage: React.FC = () => {
 
               <div className="w-full space-y-4">
                 <button
-                  onClick={() => setView('new-step1')}
+                  onClick={() => setView('new-step2')}
                   className="w-full bg-[var(--color-accent)] hover:bg-[#6b4ce6] text-white font-sans font-bold py-3.5 px-4 rounded-xl flex items-center justify-center transition-colors min-h-[48px] text-sm cursor-pointer"
                 >
                   Get Started
@@ -176,63 +173,11 @@ export const SetupPage: React.FC = () => {
             </motion.div>
           )}
 
-          {view === 'new-step1' && (
-            <motion.div key="new-step1" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
-              <button 
-                type="button"
-                onClick={() => setView('landing')}
-                className="absolute -top-1 -left-1 sm:-top-2 sm:-left-2 text-[var(--color-text-muted)] hover:text-white text-xs py-1 px-2 transition-colors cursor-pointer z-10 font-medium"
-              >
-                ← Back
-              </button>
-              <div className="flex flex-col items-center mb-6 sm:mb-8 mt-2">
-                <div className="w-12 h-12 bg-[var(--color-accent-dim)] rounded-full flex items-center justify-center mb-3 sm:mb-4">
-                  <User className="text-[var(--color-accent)]" size={24} />
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-display tracking-wide mb-1 sm:mb-2 text-white">Create Account</h1>
-              </div>
-
-              <div className="space-y-4 sm:space-y-6">
-                <input
-                  type="text"
-                  value={usernameInput}
-                  onChange={(e) => setUsernameInput(e.target.value)}
-                  placeholder="Choose a username"
-                  className="w-full bg-[rgba(0,0,0,0.2)] border border-[var(--color-border-subtle)] rounded-xl px-4 py-3.5 text-sm text-white placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-all min-h-[48px]"
-                />
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    placeholder="Choose a password"
-                    className="w-full bg-[rgba(0,0,0,0.2)] border border-[var(--color-border-subtle)] rounded-xl px-4 py-3.5 pr-12 text-sm text-white placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-all min-h-[48px]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-white transition-colors w-10 h-10 flex items-center justify-center cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-                
-                <button
-                  onClick={() => setView('new-step2')}
-                  disabled={!usernameInput.trim() || !passwordInput}
-                  className="w-full bg-[var(--color-accent)] hover:bg-[#6b4ce6] text-white font-sans font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50 min-h-[48px] text-sm cursor-pointer"
-                >
-                  Next →
-                </button>
-              </div>
-            </motion.div>
-          )}
-
           {view === 'new-step2' && (
             <motion.div key="new-step2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
               <button 
                 type="button"
-                onClick={() => setView('new-step1')}
+                onClick={() => setView('landing')}
                 className="absolute -top-1 -left-1 sm:-top-2 sm:-left-2 text-[var(--color-text-muted)] hover:text-white text-xs py-1 px-2 transition-colors cursor-pointer z-10 font-medium"
               >
                 ← Back

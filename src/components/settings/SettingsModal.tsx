@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Key, Sliders, Eye, EyeOff, KeyRound, Cloud } from 'lucide-react';
+import { X, User, Key, Sliders, Eye, EyeOff, KeyRound, Cloud, Database } from 'lucide-react';
 import { useKeyStore } from '../../store/keyStore';
 import { useFilterStore, type DramaRegion } from '../../store/filterStore';
 import { useHiddenStore } from '../../store/hiddenStore';
@@ -13,7 +13,7 @@ interface SettingsModalProps {
   onClose: () => void;
 }
 
-type TabType = 'profile' | 'apikey' | 'filters' | 'api' | 'sync';
+type TabType = 'profile' | 'apikey' | 'filters' | 'api' | 'data' | 'sync';
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
   const [activeTab, setActiveTab] = useState<TabType>('filters');
@@ -43,11 +43,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
               </button>
             </div>
             
-            <div className="flex border-b border-[var(--color-border-subtle)] px-2 overflow-x-auto shrink-0 hide-scrollbar">
+            <div className="flex border-b border-[var(--color-border-subtle)] px-2 overflow-x-auto shrink-0 scrollbar-hide">
               <TabButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<User size={16} />} label="Profile" />
               <TabButton active={activeTab === 'apikey'} onClick={() => setActiveTab('apikey')} icon={<Key size={16} />} label="API Key" />
               <TabButton active={activeTab === 'filters'} onClick={() => setActiveTab('filters')} icon={<Sliders size={16} />} label="Filters" />
               <TabButton active={activeTab === 'api'} onClick={() => setActiveTab('api')} icon={<KeyRound size={16} />} label="API" />
+              <TabButton active={activeTab === 'data'} onClick={() => setActiveTab('data')} icon={<Database size={16} />} label="Data" />
               <TabButton active={activeTab === 'sync'} onClick={() => setActiveTab('sync')} icon={<Cloud size={16} />} label="Sync" />
             </div>
 
@@ -56,6 +57,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
               {activeTab === 'apikey' && <ApiKeyTab />}
               {activeTab === 'filters' && <FiltersTab />}
               {activeTab === 'api' && <ApiTab onTabChange={setActiveTab} />}
+              {activeTab === 'data' && <DataTab />}
               {activeTab === 'sync' && <SyncTab />}
             </div>
           </motion.div>
@@ -76,32 +78,18 @@ const TabButton = ({ active, onClick, icon, label }: { active: boolean, onClick:
   </button>
 );
 
-import { exportToQR, importFromQR, generateQRDataURL } from '../../lib/qr';
 import { localAdapter } from '../../lib/storage/localAdapter';
-import { getEndpoint, setEndpoint, clearEndpoint, pullFromEndpoint, pushToEndpoint, changeCredentials, getToken, setToken, clearToken } from '../../lib/endpointSync';
+import { getEndpoint, setEndpoint, clearEndpoint, pullFromEndpoint, pushToEndpoint, getToken, setToken, clearToken } from '../../lib/endpointSync';
 
 const SyncTab = () => {
   const [url, setUrl] = useState(getEndpoint() || '');
   const [tokenInput, setTokenInput] = useState(getToken() ?? '');
-  const [username, setUsername] = useState(() => localStorage.getItem('listpeak_sync_username') || '');
-  const [password, setPassword] = useState(() => localStorage.getItem('listpeak_sync_password') || '');
-  const [showPassword, setShowPassword] = useState(false);
   const [syncLog, setSyncLog] = useState<string[]>([]);
   const [syncing, setSyncing] = useState(false);
-  
-  const hasSavedCreds = !!localStorage.getItem('listpeak_sync_username') && !!localStorage.getItem('listpeak_sync_password');
-  const [newUsername, setNewUsername] = useState(() => localStorage.getItem('listpeak_sync_username') || '');
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPasswordValue, setNewPasswordValue] = useState('');
-  const [changeCredsLog, setChangeCredsLog] = useState<{msg: string, error?: boolean} | null>(null);
-  const [isUpdatingCreds, setIsUpdatingCreds] = useState(false);
 
   const handleSave = async () => {
     setEndpoint(url);
     if (tokenInput) setToken(tokenInput); else clearToken();
-    localStorage.setItem('listpeak_sync_username', username.trim());
-    localStorage.setItem('listpeak_sync_password', password);
-    setNewUsername(username.trim());
     setSyncLog(['Pushing current data to endpoint...']);
     setSyncing(true);
     const data = await localAdapter.exportAll();
@@ -124,35 +112,9 @@ const SyncTab = () => {
   const handleClear = () => {
     clearEndpoint();
     clearToken();
-    localStorage.removeItem('listpeak_sync_username');
-    localStorage.removeItem('listpeak_sync_password');
     setUrl('');
     setTokenInput('');
-    setUsername('');
-    setPassword('');
     setSyncLog(['Endpoint cleared.']);
-  };
-
-  const handleUpdateCreds = async () => {
-    const ep = getEndpoint();
-    if (!ep) return;
-    setIsUpdatingCreds(true);
-    setChangeCredsLog(null);
-    const res = await changeCredentials(ep, newUsername.trim(), oldPassword, newPasswordValue);
-    if (res.success) {
-      setChangeCredsLog({ msg: 'Credentials updated successfully' });
-      // Update local state if the user changed the username
-      if (newUsername.trim() !== username) {
-        setUsername(newUsername.trim());
-        localStorage.setItem('listpeak_sync_username', newUsername.trim());
-      }
-      setPassword(newPasswordValue);
-      setOldPassword('');
-      setNewPasswordValue('');
-    } else {
-      setChangeCredsLog({ msg: res.error || 'Failed to update credentials', error: true });
-    }
-    setIsUpdatingCreds(false);
   };
 
   return (
@@ -179,29 +141,6 @@ const SyncTab = () => {
             placeholder="Your AUTH_TOKEN"
             className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-4 py-2.5 text-white font-sans text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors"
           />
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Username"
-            className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-4 py-2.5 text-white font-sans text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors"
-          />
-          <div className="relative">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-4 py-2.5 text-white font-sans text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
-            >
-              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-          </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -250,83 +189,11 @@ const SyncTab = () => {
           </div>
         )}
       </div>
-
-      {hasSavedCreds && (
-        <div className="border-t border-[var(--color-border-subtle)] pt-6 mt-2">
-          <h3 className="text-sm font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-4">Change Credentials</h3>
-          <div className="flex flex-col gap-3">
-            <input
-              type="text"
-              value={newUsername}
-              onChange={(e) => setNewUsername(e.target.value)}
-              placeholder="Username"
-              className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-4 py-2.5 text-white font-sans text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors"
-            />
-            <input
-              type="password"
-              value={oldPassword}
-              onChange={(e) => setOldPassword(e.target.value)}
-              placeholder="Current Password"
-              className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-4 py-2.5 text-white font-sans text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors"
-            />
-            <input
-              type="password"
-              value={newPasswordValue}
-              onChange={(e) => setNewPasswordValue(e.target.value)}
-              placeholder="New Password"
-              className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-4 py-2.5 text-white font-sans text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors"
-            />
-            <div className="flex items-center gap-4 mt-1">
-              <button
-                onClick={handleUpdateCreds}
-                disabled={isUpdatingCreds || !newUsername.trim() || !oldPassword || !newPasswordValue}
-                className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 text-sm"
-              >
-                {isUpdatingCreds ? 'Updating...' : 'Update'}
-              </button>
-              {changeCredsLog && (
-                <span className={`text-sm ${changeCredsLog.error ? 'text-red-400' : 'text-green-400'}`}>
-                  {changeCredsLog.msg}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
 const ProfileTab = () => {
-  const [qrCode, setQrCode] = useState('');
-  const [importStr, setImportStr] = useState('');
-  const [qrError, setQrError] = useState('');
-
-  const handleGenerateQR = async () => {
-    try {
-      const payload = await localAdapter.exportAll();
-      const raw = await exportToQR(payload);
-      const dataUrl = await generateQRDataURL(raw);
-      setQrCode(dataUrl);
-      setQrError('');
-    } catch (e: any) {
-      setQrError(e.message);
-    }
-  };
-
-  const handleImportQR = async () => {
-    if (!importStr.trim()) return;
-    try {
-      const payload = await importFromQR(importStr.trim());
-      await localAdapter.importAll(payload);
-      setImportStr('');
-      setQrError('');
-      alert('Import successful!');
-    } catch (e: any) {
-      setQrError('Failed to import: Invalid payload');
-    }
-  };
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-4">
@@ -338,33 +205,114 @@ const ProfileTab = () => {
           <div className="text-[var(--color-text-muted)] text-sm">Your data is stored safely on this device.</div>
         </div>
       </div>
+    </div>
+  );
+};
 
-      <div className="flex flex-col gap-4 border border-[var(--color-border-subtle)] rounded-xl p-5 bg-[var(--color-surface)]/50 mt-4">
-        <h4 className="text-md font-bold text-white mb-2">QR Export / Import</h4>
-        <div className="flex gap-2">
-          <button onClick={handleGenerateQR} className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
-            Export Watchlist
+const DataTab = () => {
+  const [importStatus, setImportStatus] = useState<string>('');
+
+  async function handleExport() {
+    const data = await localAdapter.exportAll();
+    const blob = new Blob([JSON.stringify(data, null, 2)], 
+      { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `listpeak-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      // Validate
+      if (!data.watchlist || !Array.isArray(data.watchlist)) {
+        setImportStatus('Invalid file — missing watchlist');
+        return;
+      }
+      
+      // Preview
+      const msg = `Found ${data.watchlist.length} items` +
+        (data.apiKey ? ', API key included' : '') +
+        (data.filters ? ', filters included' : '');
+      setImportStatus(msg);
+      
+      // Apply
+      await localAdapter.importAll(data);
+      setImportStatus('Import successful ✓');
+    } catch {
+      setImportStatus('Failed to parse file');
+    }
+    
+    // Reset file input
+    e.target.value = '';
+  }
+
+  return (
+    <div className="flex flex-col gap-8">
+      {/* EXPORT SECTION */}
+      <div>
+        <h3 className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-3">Backup Data</h3>
+        <div className="border border-[var(--color-border-subtle)] rounded-xl p-4 bg-[var(--color-surface)]/30 flex justify-between items-center">
+          <div>
+            <div className="text-sm font-medium text-[var(--color-text-primary)]">Export Backup</div>
+            <div className="text-xs text-[var(--color-text-muted)] mt-0.5">Download a JSON file of your watchlist, filters, and API key.</div>
+          </div>
+          <button 
+            onClick={handleExport}
+            className="px-4 py-2 rounded-lg bg-[var(--color-accent)] hover:bg-[#6b4ce6] text-white text-xs font-medium transition-colors whitespace-nowrap"
+          >
+            Export Backup
           </button>
         </div>
-        
-        {qrError && <p className="text-red-400 text-xs">{qrError}</p>}
-        
-        {qrCode && (
-          <div className="flex flex-col items-center gap-3 p-4 bg-white rounded-lg">
-            <img src={qrCode} alt="QR Code" className="w-48 h-48" />
-            <p className="text-xs text-black/60 text-center">Scan to import to another device</p>
-          </div>
-        )}
+      </div>
 
-        <div className="flex flex-col gap-2 mt-4">
-          <textarea
-            placeholder="Paste raw QR string to import..."
-            value={importStr}
-            onChange={e => setImportStr(e.target.value)}
-            className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white min-h-[80px]"
-          />
-          <button onClick={handleImportQR} disabled={!importStr.trim()} className="bg-white/10 hover:bg-white/20 text-white py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
-            Import Payload
+      {/* IMPORT SECTION */}
+      <div>
+        <h3 className="text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-3">Restore Data</h3>
+        <div className="border border-[var(--color-border-subtle)] rounded-xl p-4 bg-[var(--color-surface)]/30 flex justify-between items-center gap-4">
+          <div>
+            <div className="text-sm font-medium text-[var(--color-text-primary)]">Import Backup</div>
+            <div className="text-xs text-[var(--color-text-muted)] mt-0.5">Restore your data from a previously exported JSON file.</div>
+            {importStatus && <div className="text-xs text-[var(--color-accent)] mt-2 font-mono">{importStatus}</div>}
+          </div>
+          <label className="cursor-pointer px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors whitespace-nowrap inline-flex items-center justify-center">
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleImport}
+              className="hidden"
+            />
+            <span>Import Backup</span>
+          </label>
+        </div>
+      </div>
+
+      {/* DANGER ZONE */}
+      <div>
+        <h3 className="text-[10px] font-semibold text-red-500/50 uppercase tracking-widest mb-3">Danger Zone</h3>
+        <div className="border border-red-500/20 rounded-xl p-4 bg-red-500/5 flex justify-between items-center gap-4">
+          <div>
+            <div className="text-sm font-medium text-red-400">Clear All Local Data</div>
+            <div className="text-xs text-red-400/70 mt-0.5">Hard delete everything stored in your browser. This cannot be undone.</div>
+          </div>
+          <button 
+            onClick={() => {
+              if (window.confirm('Clear all local data? This cannot be undone.')) {
+                localStorage.clear();
+                window.location.reload();
+              }
+            }}
+            className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 text-xs font-medium transition-colors whitespace-nowrap"
+          >
+            Clear All
           </button>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Bookmark, Settings } from 'lucide-react';
+import { Bookmark, Settings } from 'lucide-react';
 import { useWatchlistStore, type WatchlistEntry } from '../store/watchlistStore';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
@@ -22,17 +22,7 @@ export const ProfilePage: React.FC = () => {
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
   );
 
-  const handleExport = () => {
-    const dataStr = JSON.stringify(allEntries, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = 'listpeak-watchlist.json';
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-  };
+
 
   const getStatusColor = (status: WatchlistEntry['status']) => {
     switch(status) {
@@ -86,7 +76,7 @@ export const ProfilePage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center justify-between border-b border-[var(--color-border-subtle)] mb-8 pb-4 overflow-x-auto gap-4 hide-scrollbar">
+        <div className="flex items-center justify-between border-b border-[var(--color-border-subtle)] mb-8 pb-4 overflow-x-auto gap-4 scrollbar-hide">
           <div className="flex gap-2 min-w-max">
             {statuses.map(status => (
               <button
@@ -106,13 +96,7 @@ export const ProfilePage: React.FC = () => {
             ))}
           </div>
 
-          <button 
-            onClick={handleExport}
-            className="hidden md:flex shrink-0 items-center gap-2 px-4 py-2 rounded-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] hover:bg-white/5 text-white/80 transition-colors font-sans text-sm"
-          >
-            <Download size={14} />
-            Export JSON
-          </button>
+
         </div>
 
         {currentTabEntries.length === 0 ? (
