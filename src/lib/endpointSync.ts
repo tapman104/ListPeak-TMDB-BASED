@@ -1,8 +1,14 @@
 import { localAdapter } from './storage/localAdapter';
+import { useKeyStore } from '../store/keyStore';
 
 const ENDPOINT_KEY = 'listpeak_sync_endpoint';
 const USERNAME_KEY = 'listpeak_sync_username';
 const PASSWORD_KEY = 'listpeak_sync_password';
+
+const TOKEN_KEY = 'listpeak_sync_token';
+export const getToken = () => localStorage.getItem(TOKEN_KEY);
+export const setToken = (t: string) => localStorage.setItem(TOKEN_KEY, t.trim());
+export const clearToken = () => localStorage.removeItem(TOKEN_KEY);
 
 export function getEndpoint(): string | null {
   return localStorage.getItem(ENDPOINT_KEY);
@@ -33,15 +39,15 @@ export async function pushToEndpoint(data: any): Promise<boolean> {
   const url = getEndpoint();
   if (!url) return false;
   try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-
-    const username = localStorage.getItem(USERNAME_KEY) || '';
-    const password = localStorage.getItem(PASSWORD_KEY) || '';
+    const headers: Record<string, string> = { 
+      'Content-Type': 'application/json',
+      'X-Auth-Token': getToken() ?? ''
+    };
 
     const res = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ ...data, username, password }),
+      body: JSON.stringify(data),
     });
     return res.ok;
   } catch {
@@ -59,18 +65,21 @@ export async function pullFromEndpoint(): Promise<{ success: boolean; log: strin
   _isPulling = true;
   try {
     log.push('Connecting to endpoint...');
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-
-    const username = localStorage.getItem(USERNAME_KEY) || '';
-    const password = localStorage.getItem(PASSWORD_KEY) || '';
+    const headers: Record<string, string> = { 
+      'Content-Type': 'application/json',
+      'X-Auth-Token': getToken() ?? ''
+    };
 
     const res = await fetch(url, { 
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ action: 'pull', username, password })
+      method: 'GET',
+      headers
     });
     if (!res.ok) {
-      log.push(`Failed: HTTP ${res.status}`);
+      if (res.status === 401) {
+        log.push('Auth failed — check your token');
+      } else {
+        log.push(`Server error: ${res.status}`);
+      }
       return { success: false, log, data: null };
     }
 
@@ -90,6 +99,12 @@ export async function pullFromEndpoint(): Promise<{ success: boolean; log: strin
       log.push(`Applying watchlist (${data.watchlist?.length ?? 0} items)...`);
       await localAdapter.importAll(data);
       log.push('Done — all data applied');
+      
+      const apiKey = useKeyStore.getState().apiKey;
+      log.push(apiKey 
+        ? 'API key restored from cloud ✓' 
+        : 'No API key in cloud — please enter manually'
+      );
     }
     return { success: true, log, data };
   } catch (e) {

@@ -5,7 +5,7 @@ import { KeyRound, Eye, EyeOff, Loader2, Cloud, User } from 'lucide-react';
 import { useKeyStore } from '../store/keyStore';
 import { createTMDBClient } from '../api/tmdb';
 import { Route } from '../routes/setup';
-import { setEndpoint, pullFromEndpoint, pushToEndpoint } from '../lib/endpointSync';
+import { setEndpoint, pullFromEndpoint, pushToEndpoint, setToken } from '../lib/endpointSync';
 import { startBackgroundPrefetch } from '../lib/bgPrefetch';
 import { localAdapter } from '../lib/storage/localAdapter';
 
@@ -30,6 +30,7 @@ export const SetupPage: React.FC = () => {
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [endpointInput, setEndpointInput] = useState(() => localStorage.getItem('listpeak_sync_endpoint') || '');
+  const [tokenValue, setTokenValue] = useState(() => localStorage.getItem('listpeak_sync_token') || '');
   const [usernameInput, setUsernameInput] = useState(() => localStorage.getItem('listpeak_sync_username') || '');
   const [passwordInput, setPasswordInput] = useState(() => localStorage.getItem('listpeak_sync_password') || '');
   const [showPassword, setShowPassword] = useState(false);
@@ -81,6 +82,7 @@ export const SetupPage: React.FC = () => {
     setLogs(['Testing connection...']);
     try {
       setEndpoint(endpointInput.trim());
+      if (tokenValue) setToken(tokenValue);
       localStorage.setItem('listpeak_sync_username', usernameInput.trim());
       localStorage.setItem('listpeak_sync_password', passwordInput);
       
@@ -108,15 +110,15 @@ export const SetupPage: React.FC = () => {
     setLogs(['Connecting to endpoint...']);
     try {
       setEndpoint(endpointInput.trim());
+      if (tokenValue) setToken(tokenValue);
       localStorage.setItem('listpeak_sync_username', usernameInput.trim());
       localStorage.setItem('listpeak_sync_password', passwordInput);
       const result = await pullFromEndpoint();
       setLogs(result.log);
       
       if (result.success) {
-        if (result.data?.apiKey) {
-          useKeyStore.getState().setApiKey(result.data.apiKey);
-          setView('done');
+        if (useKeyStore.getState().apiKey) {
+          onComplete();
         } else {
           setView('restore-apikey');
         }
@@ -319,6 +321,13 @@ export const SetupPage: React.FC = () => {
                   placeholder="https://your-worker.workers.dev"
                   className="w-full bg-[rgba(0,0,0,0.2)] border border-[var(--color-border-subtle)] rounded-xl px-4 py-3.5 text-sm text-white placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-all min-h-[48px]"
                 />
+                <input
+                  type="password"
+                  value={tokenValue}
+                  onChange={(e) => setTokenValue(e.target.value)}
+                  placeholder="Your AUTH_TOKEN"
+                  className="w-full bg-[rgba(0,0,0,0.2)] border border-[var(--color-border-subtle)] rounded-xl px-4 py-3.5 text-sm text-white placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-all min-h-[48px]"
+                />
 
                 {logs.length > 0 && (
                   <div className="bg-[rgba(0,0,0,0.3)] border border-[var(--color-border-subtle)] rounded-lg p-3 max-h-32 overflow-y-auto font-mono text-[10px] text-gray-300">
@@ -375,6 +384,14 @@ export const SetupPage: React.FC = () => {
                   value={endpointInput}
                   onChange={(e) => setEndpointInput(e.target.value)}
                   placeholder="https://your-worker.workers.dev"
+                  disabled={isLoading}
+                  className="w-full bg-[rgba(0,0,0,0.2)] border border-[var(--color-border-subtle)] rounded-xl px-4 py-3.5 text-sm text-white placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-all min-h-[48px] disabled:opacity-50"
+                />
+                <input
+                  type="password"
+                  value={tokenValue}
+                  onChange={(e) => setTokenValue(e.target.value)}
+                  placeholder="Your AUTH_TOKEN"
                   disabled={isLoading}
                   className="w-full bg-[rgba(0,0,0,0.2)] border border-[var(--color-border-subtle)] rounded-xl px-4 py-3.5 text-sm text-white placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-all min-h-[48px] disabled:opacity-50"
                 />

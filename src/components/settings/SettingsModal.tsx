@@ -78,10 +78,11 @@ const TabButton = ({ active, onClick, icon, label }: { active: boolean, onClick:
 
 import { exportToQR, importFromQR, generateQRDataURL } from '../../lib/qr';
 import { localAdapter } from '../../lib/storage/localAdapter';
-import { getEndpoint, setEndpoint, clearEndpoint, pullFromEndpoint, pushToEndpoint, changeCredentials } from '../../lib/endpointSync';
+import { getEndpoint, setEndpoint, clearEndpoint, pullFromEndpoint, pushToEndpoint, changeCredentials, getToken, setToken, clearToken } from '../../lib/endpointSync';
 
 const SyncTab = () => {
   const [url, setUrl] = useState(getEndpoint() || '');
+  const [tokenInput, setTokenInput] = useState(getToken() ?? '');
   const [username, setUsername] = useState(() => localStorage.getItem('listpeak_sync_username') || '');
   const [password, setPassword] = useState(() => localStorage.getItem('listpeak_sync_password') || '');
   const [showPassword, setShowPassword] = useState(false);
@@ -97,6 +98,7 @@ const SyncTab = () => {
 
   const handleSave = async () => {
     setEndpoint(url);
+    if (tokenInput) setToken(tokenInput); else clearToken();
     localStorage.setItem('listpeak_sync_username', username.trim());
     localStorage.setItem('listpeak_sync_password', password);
     setNewUsername(username.trim());
@@ -121,9 +123,11 @@ const SyncTab = () => {
 
   const handleClear = () => {
     clearEndpoint();
+    clearToken();
     localStorage.removeItem('listpeak_sync_username');
     localStorage.removeItem('listpeak_sync_password');
     setUrl('');
+    setTokenInput('');
     setUsername('');
     setPassword('');
     setSyncLog(['Endpoint cleared.']);
@@ -165,6 +169,14 @@ const SyncTab = () => {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://listpeak-sync.username.workers.dev"
+            className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-4 py-2.5 text-white font-sans text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors"
+          />
+          <label className="text-sm font-semibold text-[var(--color-text-muted)] mt-1 -mb-1">Auth Token</label>
+          <input
+            type="password"
+            value={tokenInput}
+            onChange={e => setTokenInput(e.target.value)}
+            placeholder="Your AUTH_TOKEN"
             className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-4 py-2.5 text-white font-sans text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors"
           />
           <input

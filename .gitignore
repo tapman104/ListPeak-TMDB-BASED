@@ -44,3 +44,7 @@ Thumbs.db
 
 # Antigravity / Gemini metadata if any
 .agents/
+
+# Cloudflare Workers
+.wrangler/
+.mf/
