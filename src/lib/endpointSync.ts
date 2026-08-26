@@ -2,7 +2,6 @@ import { localAdapter } from './storage/localAdapter';
 import { useKeyStore } from '../store/keyStore';
 
 const ENDPOINT_KEY = 'listpeak_sync_endpoint';
-const USERNAME_KEY = 'listpeak_sync_username';
 const PASSWORD_KEY = 'listpeak_sync_password';
 
 const TOKEN_KEY = 'listpeak_sync_token';
