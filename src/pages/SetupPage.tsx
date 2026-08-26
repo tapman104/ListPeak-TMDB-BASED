@@ -83,8 +83,6 @@ export const SetupPage: React.FC = () => {
     try {
       setEndpoint(endpointInput.trim());
       if (tokenValue) setToken(tokenValue);
-      localStorage.setItem('listpeak_sync_username', usernameInput.trim());
-      localStorage.setItem('listpeak_sync_password', passwordInput);
       
       const data = await localAdapter.exportAll();
       const success = await pushToEndpoint(data);
@@ -111,8 +109,6 @@ export const SetupPage: React.FC = () => {
     try {
       setEndpoint(endpointInput.trim());
       if (tokenValue) setToken(tokenValue);
-      localStorage.setItem('listpeak_sync_username', usernameInput.trim());
-      localStorage.setItem('listpeak_sync_password', passwordInput);
       const result = await pullFromEndpoint();
       setLogs(result.log);
       
@@ -395,32 +391,6 @@ export const SetupPage: React.FC = () => {
                   disabled={isLoading}
                   className="w-full bg-[rgba(0,0,0,0.2)] border border-[var(--color-border-subtle)] rounded-xl px-4 py-3.5 text-sm text-white placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-all min-h-[48px] disabled:opacity-50"
                 />
-                <input
-                  type="text"
-                  value={usernameInput}
-                  onChange={(e) => setUsernameInput(e.target.value)}
-                  placeholder="Username"
-                  disabled={isLoading}
-                  className="w-full bg-[rgba(0,0,0,0.2)] border border-[var(--color-border-subtle)] rounded-xl px-4 py-3.5 text-sm text-white placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-all min-h-[48px] disabled:opacity-50"
-                />
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    placeholder="Password"
-                    disabled={isLoading}
-                    className="w-full bg-[rgba(0,0,0,0.2)] border border-[var(--color-border-subtle)] rounded-xl px-4 py-3.5 pr-12 text-sm text-white placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-all min-h-[48px] disabled:opacity-50"
-                  />
-                  <button
-                    type="button"
-                    disabled={isLoading}
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-white transition-colors w-10 h-10 flex items-center justify-center cursor-pointer disabled:opacity-50"
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
 
                 {error && <p className="text-red-400 text-xs sm:text-sm mt-2 text-center">{error}</p>}
 
