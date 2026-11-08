@@ -45,8 +45,16 @@ export const TrendingPage: React.FC = () => {
         tmdb!.getTrendingWeek({ signal }, undefined, 2),
         tmdb!.getTrendingWeek({ signal }, undefined, 3)
       ]);
+      const merged = [...page1.results, ...page2.results, ...page3.results];
+      const seen = new Set<string>();
+      const deduped = merged.filter((item) => {
+        const key = `${item.id}-${item.media_type ?? 'movie'}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
       return {
-        results: [...page1.results, ...page2.results, ...page3.results]
+        results: deduped
       };
     },
     enabled: !!apiKey,
@@ -91,7 +99,7 @@ export const TrendingPage: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {filteredTrending.map((item, index) => (
               <PosterCard
-                key={item.id}
+                key={`${item.id}-${item.media_type ?? 'movie'}`}
                 id={item.id}
                 title={item.title || item.name}
                 posterPath={item.poster_path}
